@@ -186,9 +186,11 @@ body{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
     </div>
     <div class="tiles" id="x-tiles"></div>
     <div class="actions">
-      <button class="primary" id="b-export">Crea export per commercialista</button>
+      <button class="primary" id="b-modulo">Modulo compensi per Studio Mattonai</button>
+      <button id="b-export">Export dettagliato (Excel)</button>
       <button id="b-close"></button>
     </div>
+    <div id="x-modulo" hidden class="notice" style="color:var(--fg)"></div>
     <div id="x-export" hidden class="group">
       <div class="links" id="x-links"></div>
       <label>Messaggio da inviare<textarea id="x-text" readonly></textarea></label>
@@ -347,7 +349,7 @@ function enterAdmin(){
   show("admin");loadAdmin();
 }
 async function loadAdmin(){
-  $("x-label").textContent=mLabel(S.xmonth);$("x-export").hidden=true;$("x-table").innerHTML='<tr><td class="zero">Caricamento…</td></tr>';
+  $("x-label").textContent=mLabel(S.xmonth);$("x-export").hidden=true;$("x-modulo").hidden=true;$("x-table").innerHTML='<tr><td class="zero">Caricamento…</td></tr>';
   try{S.admin=await run("api_admin",S.pin,S.xmonth);renderAdmin()}catch(x){adminErr(x)}
 }
 function adminErr(x){if(/PIN/.test(String(x&&x.message||x))){store("eo-pin",null);S.pin="";S.me?show("main"):renderPick()}err(x)}
@@ -391,7 +393,16 @@ $("b-export").onclick=async()=>{
     $("x-links").innerHTML=`<a href="${esc(r.url)}" target="_blank" rel="noopener">Apri Google Sheet</a><a href="${esc(r.xlsx)}" target="_blank" rel="noopener">Scarica Excel</a><a href="${esc(r.pdf)}" target="_blank" rel="noopener">Scarica PDF</a>`;
     $("x-text").value=r.text;$("x-export").hidden=false;toast("Export creato nella cartella Drive");
   }catch(x){adminErr(x)}
-  finally{b.disabled=false;b.textContent="Crea export per commercialista"}
+  finally{b.disabled=false;b.textContent="Export dettagliato (Excel)"}
+};
+$("b-modulo").onclick=async()=>{
+  const b=$("b-modulo");b.disabled=true;b.textContent="Preparo modulo ed email…";$("x-modulo").hidden=true;
+  try{
+    const r=await run("api_modulo",S.pin,S.xmonth);
+    $("x-modulo").innerHTML=`<b>Modulo pronto: ${r.count} collaboratori, totale ${eur(r.total)}.</b><br>La bozza email per consulenzalavoro@studiomattonai.it ha già il PDF in allegato: controllala e inviala.<div class="links" style="margin-top:8px"><a href="${esc(r.draft)}" target="_blank" rel="noopener">Apri bozza email</a><a href="${esc(r.pdf)}" target="_blank" rel="noopener">Apri PDF</a></div>`;
+    $("x-modulo").hidden=false;toast("Modulo e bozza email creati");
+  }catch(x){adminErr(x)}
+  finally{b.disabled=false;b.textContent="Modulo compensi per Studio Mattonai"}
 };
 $("b-copy").onclick=async()=>{
   try{await navigator.clipboard.writeText($("x-text").value);toast("Messaggio copiato")}
