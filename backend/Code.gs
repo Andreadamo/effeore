@@ -531,7 +531,7 @@ function setup() {
 /* ---------- keep-warm: evita avvio lento dell'app ---------- */
 function keepWarm() {
   try {
-    UrlFetchApp.fetch(ScriptApp.getService().getUrl(), {
+    UrlFetchApp.fetch('https://script.google.com/macros/s/AKfycby2-JgsaMQVF-f3jEAjULepaHx2EhQhhxUeUtY5adDkFz63BIuW3EhFmQUvoFMmrmZfGw/exec', {
       method: 'post', contentType: 'text/plain', muteHttpExceptions: true,
       payload: JSON.stringify({ fn: 'api_init', args: [] })
     });
