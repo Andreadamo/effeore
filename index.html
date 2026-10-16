@@ -127,12 +127,20 @@ body{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
   <div class="install" id="inst" data-inst hidden><div><b>Installa EffeOre sul telefono</b><span class="inst-txt">Avrai l'icona nella schermata Home, come un'app.</span></div><button class="primary" data-binst type="button">Installa</button></div>
   <div class="notice offline" data-off hidden>Sei offline: collegati a internet per registrare.</div>
   <div class="top"><div class="brand"><h1>EffeOre</h1><small>Registro attività staff · Effestudio Training Center</small></div></div>
-  <div class="card">
-    <h2>Chi sei?</h2>
-    <div class="sub">Tocca il tuo nome. Su questo telefono resterà salvato.</div>
-    <div id="pick-list" class="group"></div>
-  </div>
-  <div class="foot"><button class="ghost" data-go="admin">Area amministrazione</button></div>
+  <form class="card" id="f-login" autocomplete="on">
+    <h2>Accedi</h2>
+    <div class="sub" id="l-help">Inserisci la tua email: ti mandiamo un PIN di accesso. Su questo telefono resterai collegato.</div>
+    <label>Email<input type="email" id="l-email" autocomplete="email" inputmode="email" required placeholder="nome@esempio.it"></label>
+    <div id="l-pin-wrap" class="group" hidden>
+      <label>PIN ricevuto via email<input id="l-pin" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 cifre"></label>
+    </div>
+    <button class="primary big" id="b-login">Invia PIN</button>
+    <div class="actions" style="justify-content:space-between">
+      <button type="button" class="ghost" id="b-havepin">Ho già il PIN</button>
+      <button type="button" class="ghost" id="b-resend" hidden>Rimanda il PIN</button>
+    </div>
+  </form>
+  <div id="pick-list" hidden></div>
 </div>
 
 <!-- ===== registrazione ===== -->
@@ -142,7 +150,7 @@ body{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
   <div class="top"><div class="brand"><h1>EffeOre</h1><small>Registro attività staff · Effestudio</small></div></div>
 
   <div class="card">
-    <div class="who"><div><b id="me-name"></b></div><button class="ghost" id="b-change">Cambia nome</button></div>
+    <div class="who"><div><b id="me-name"></b></div><button class="ghost" id="b-change">Esci</button></div>
   </div>
 
   <form class="card" id="f-add" autocomplete="off">
@@ -172,7 +180,7 @@ body{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
     <div class="tiles" id="m-tiles"></div>
     <div class="list" id="m-list"></div>
   </div>
-  <div class="foot"><button class="ghost" data-go="admin">Area amministrazione</button></div>
+  <div class="foot" id="admin-link" hidden><button class="ghost" data-go="admin">Area amministrazione</button></div>
 </div>
 
 <!-- ===== amministrazione ===== -->
@@ -268,14 +276,34 @@ function load(k){try{return localStorage.getItem(k)}catch(e){return null}}
 
 /* ---------- scelta nome ---------- */
 function renderPick(){
-  const list=S.init.staff.slice().sort((a,b)=>a.name.localeCompare(b.name,"it"));
-  $("pick-list").innerHTML=`<div class="names">${list.map(s=>`<button type="button" data-me="${esc(s.id)}">${esc(s.name)}</button>`).join("")}</div>`;
-  show("pick");
+  S.me=null;$("l-pin").value="";
+  const em=load("eo-email");if(em)$("l-email").value=em;
+  loginStep(!!load("eo-pinsent"));show("pick");
 }
-function setMe(id){
-  S.me=S.init.staff.find(s=>s.id===id)||null;
-  if(!S.me){store("eo-me",null);return renderPick()}
-  store("eo-me",S.me.id);
+function loginStep(pin){
+  $("l-pin-wrap").hidden=!pin;$("b-resend").hidden=!pin;$("b-havepin").hidden=pin;
+  $("b-login").textContent=pin?"Entra":"Invia PIN";$("l-pin").required=pin;
+  $("l-help").textContent=pin?"Controlla la posta (anche lo spam) e inserisci il PIN di 6 cifre.":"Inserisci la tua email: ti mandiamo un PIN di accesso. Su questo telefono resterai collegato.";
+}
+async function sendPin(){
+  const email=$("l-email").value.trim();if(!email)return err("Inserisci la tua email.");
+  const b=$("b-login");b.disabled=true;b.textContent="Invio…";
+  try{await run("api_requestPin",email);store("eo-email",email);store("eo-pinsent","1");loginStep(true);$("l-pin").focus();toast("PIN inviato a "+email)}
+  catch(x){err(x);loginStep(!$("l-pin-wrap").hidden)}finally{b.disabled=false}
+}
+$("f-login").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if($("l-pin-wrap").hidden)return sendPin();
+  const b=$("b-login");b.disabled=true;b.textContent="Accesso…";
+  try{const r=await run("api_login",$("l-email").value.trim(),$("l-pin").value.trim());store("eo-token",r.token);store("eo-email",$("l-email").value.trim());store("eo-pinsent",null);S.token=r.token;setMe(r.me)}
+  catch(x){err(x)}finally{b.disabled=false;if(!S.me)b.textContent="Entra"}
+});
+$("b-havepin").onclick=()=>{if(!$("l-email").value.trim())return err("Inserisci prima la tua email.");loginStep(true);$("l-pin").focus()};
+$("b-resend").onclick=sendPin;
+function sessionLost(x){if(/Sessione scaduta/.test(String(x&&x.message||x))){store("eo-token",null);S.token="";renderPick();return true}return false}
+function setMe(me){
+  S.me=me;if(!S.me)return renderPick();
+  $("admin-link").hidden=!S.me.admin;
   $("me-name").textContent=S.me.name;
   const acts=myRates();S.act=acts[0]?acts[0].act:null;
   $("a-date").value=S.init.today;$("a-date").max=S.init.today;
@@ -313,19 +341,19 @@ $("f-add").addEventListener("submit",async e=>{
   if(!S.me||!S.act)return;
   const q=qty();if(!(q>0))return err("Inserisci una quantità maggiore di zero.");
   const b=$("b-save");b.disabled=true;b.textContent="Salvataggio…";
-  const data={staffId:S.me.id,date:$("a-date").value,act:S.act,qty:q,sede:$("a-sede").value,note:$("a-note").value.trim(),cliente:$("a-cli").value.trim()};
+  const data={date:$("a-date").value,act:S.act,qty:q,sede:$("a-sede").value,note:$("a-note").value.trim(),cliente:$("a-cli").value.trim()};
   if(data.act==="PT"&&!data.cliente){b.disabled=false;b.textContent="Registra";$("a-cli").focus();return err("Scrivi il nome del cliente del PT.")}
   try{
-    S.mine=await run("api_add",data);S.month=S.mine.month;store("eo-sede",data.sede);
+    S.mine=await run("api_add",S.token,data);S.month=S.mine.month;store("eo-sede",data.sede);
     $("a-note").value="";$("a-cli").value="";toast(`Registrato: ${ACT_LABEL[data.act]||data.act} ${qn(q)} ${unitWord(curRate().unit,q)}`);renderMine();
-  }catch(x){err(x)}
+  }catch(x){if(!sessionLost(x))err(x)}
   finally{b.disabled=false;b.textContent="Registra"}
 });
 
 /* ---------- il tuo mese ---------- */
 async function loadMine(){
   $("m-label").textContent=mLabel(S.month);$("m-list").innerHTML='<div class="empty">Caricamento…</div>';$("m-tiles").innerHTML="";
-  try{S.mine=await run("api_mine",S.me.id,S.month);renderMine()}catch(x){err(x)}
+  try{S.mine=await run("api_mine",S.token,S.month);renderMine()}catch(x){if(!sessionLost(x))err(x)}
 }
 function renderMine(){
   const d=S.mine;if(!d)return;
@@ -457,7 +485,7 @@ document.addEventListener("click",async e=>{
   const go=e.target.closest("[data-go]");if(go)return openAdmin();
   const del=e.target.closest("[data-del]");
   if(del){const id=del.dataset.del;if(S.armed!==id){S.armed=id;renderMine();return}
-    S.armed=null;del.disabled=true;try{S.mine=await run("api_delete",S.me.id,id);renderMine();toast("Registrazione eliminata")}catch(x){err(x)}return}
+    S.armed=null;del.disabled=true;try{S.mine=await run("api_delete",S.token,id);renderMine();toast("Registrazione eliminata")}catch(x){if(!sessionLost(x))err(x)}return}
   const xe=e.target.closest("[data-xex]");
   if(xe){const id=xe.dataset.xex;if(S.armed!==id){S.armed=id;renderAdmin();return}
     S.armed=null;xe.disabled=true;try{S.admin=await run("api_deleteExtra",S.pin,id);renderAdmin();toast("Voce eliminata")}catch(x){adminErr(x)}return}
@@ -465,7 +493,7 @@ document.addEventListener("click",async e=>{
   if(xd){const id=xd.dataset.xdel;if(S.armed!==id){S.armed=id;renderAdmin();return}
     S.armed=null;xd.disabled=true;try{S.admin=await run("api_adminDelete",S.pin,id);renderAdmin();toast("Registrazione eliminata")}catch(x){adminErr(x)}return}
 });
-$("b-change").onclick=()=>{store("eo-me",null);S.me=null;renderPick()};
+$("b-change").onclick=async()=>{const t=S.token;store("eo-token",null);S.token="";store("eo-pinsent",null);renderPick();if(t)run("api_logout",t).catch(()=>{})};
 
 /* ---------- PWA ---------- */
 let deferredPrompt=null;
@@ -486,9 +514,11 @@ if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.ser
 
 /* ---------- avvio ---------- */
 async function boot(){
-  try{S.init=await run("api_init")}catch(x){err(x);$("pick-list").innerHTML='<div class="empty">Impossibile caricare lo staff. Controlla la connessione e riapri l\'app.</div>';show("pick");return}
-  const id=load("eo-me");
-  if(id&&S.init.staff.some(s=>s.id===id))setMe(id);else renderPick();
+  try{S.init=await run("api_init")}catch(x){err(x);show("pick");return}
+  store("eo-me",null);
+  S.token=load("eo-token")||"";
+  if(!S.token)return renderPick();
+  try{setMe(await run("api_me",S.token))}catch(x){if(!sessionLost(x)){err(x);show("pick")}}
 }
 boot();
 </script>
