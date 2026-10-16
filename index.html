@@ -142,7 +142,7 @@ body{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
   <div class="top"><div class="brand"><h1>EffeOre</h1><small>Registro attività staff · Effestudio</small></div></div>
 
   <div class="card">
-    <div class="who"><div><b id="me-name"></b><div><span class="pill" id="me-role"></span></div></div><button class="ghost" id="b-change">Cambia nome</button></div>
+    <div class="who"><div><b id="me-name"></b></div><button class="ghost" id="b-change">Cambia nome</button></div>
   </div>
 
   <form class="card" id="f-add" autocomplete="off">
@@ -154,6 +154,8 @@ body{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
       <div class="stepper"><button type="button" id="q-minus" aria-label="Meno">−</button><input id="a-qty" inputmode="decimal" required><button type="button" id="q-plus" aria-label="Più">+</button></div>
       <div class="unit" id="a-unit"></div>
     </div>
+    <label id="a-cli-wrap" hidden>Cliente del PT<input id="a-cli" list="cli-list" maxlength="80" placeholder="Nome e cognome del cliente" autocomplete="off"></label>
+    <datalist id="cli-list"></datalist>
     <div class="row2">
       <label>Sede<select id="a-sede"></select></label>
       <label>Note<input id="a-note" maxlength="200" placeholder="facoltativo"></label>
@@ -182,7 +184,7 @@ body{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
   <div class="card">
     <div class="card-h">
       <div class="month-nav"><button type="button" id="x-prev" aria-label="Mese precedente">‹</button><strong id="x-label"></strong><button type="button" id="x-next" aria-label="Mese successivo">›</button></div>
-      <span id="x-state"></span>
+      <span><span id="x-state"></span> <span class="sub" id="x-upd"></span></span>
     </div>
     <div class="tiles" id="x-tiles"></div>
     <div class="actions">
@@ -198,8 +200,22 @@ body{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
     </div>
   </div>
   <div class="card">
-    <h2>Riepilogo compensi</h2>
+    <div class="card-h"><h2>Riepilogo compensi</h2><span class="sub">Si aggiorna da solo ogni minuto</span></div>
     <div class="tbl-wrap"><table id="x-table"></table></div>
+  </div>
+  <div class="card">
+    <div class="card-h"><h2>Voci extra del mese</h2><span class="sub">Rimborsi, rettifiche, bonus. Trattenute con il meno.</span></div>
+    <form id="f-extra" class="group" autocomplete="off">
+      <div class="row2"><label>Persona<select id="e-staff" required></select></label><label>Importo €<input id="e-amount" inputmode="decimal" placeholder="es. 50 oppure -20" required></label></div>
+      <label>Descrizione<input id="e-desc" maxlength="120" placeholder="es. Rimborso IRPEF" required></label>
+      <button class="primary" id="b-extra">Aggiungi voce</button>
+    </form>
+    <div class="list" id="x-extras"></div>
+    <div class="sub" id="x-fixed"></div>
+  </div>
+  <div class="card">
+    <h2>PT per cliente</h2>
+    <div class="list" id="x-pt"></div>
   </div>
   <div class="card">
     <div class="card-h"><h2>Dettaglio registrazioni</h2><select id="x-filter" style="width:auto"></select></div>
@@ -252,9 +268,8 @@ function load(k){try{return localStorage.getItem(k)}catch(e){return null}}
 
 /* ---------- scelta nome ---------- */
 function renderPick(){
-  const g={};S.init.staff.forEach(s=>(g[s.role]=g[s.role]||[]).push(s));
-  $("pick-list").innerHTML=["Operativo","New entry","Amministrativo"].filter(r=>g[r]).map(r=>
-    `<div class="group"><h3>${ROLE_LABEL[r]}</h3><div class="names">${g[r].map(s=>`<button type="button" data-me="${esc(s.id)}">${esc(s.name)}</button>`).join("")}</div></div>`).join("");
+  const list=S.init.staff.slice().sort((a,b)=>a.name.localeCompare(b.name,"it"));
+  $("pick-list").innerHTML=`<div class="names">${list.map(s=>`<button type="button" data-me="${esc(s.id)}">${esc(s.name)}</button>`).join("")}</div>`;
   show("pick");
 }
 function setMe(id){
@@ -262,7 +277,6 @@ function setMe(id){
   if(!S.me){store("eo-me",null);return renderPick()}
   store("eo-me",S.me.id);
   $("me-name").textContent=S.me.name;
-  const p=$("me-role");p.textContent=ROLE_LABEL[S.me.role]||S.me.role;p.className="pill "+(ROLE_CLASS[S.me.role]||"ad");
   const acts=myRates();S.act=acts[0]?acts[0].act:null;
   $("a-date").value=S.init.today;$("a-date").max=S.init.today;
   $("a-sede").innerHTML='<option value="">—</option>'+S.init.sedi.map(x=>`<option>${esc(x)}</option>`).join("");
@@ -279,6 +293,7 @@ function renderActs(){
   $("a-acts").innerHTML=rs.map(r=>`<button type="button" data-act="${esc(r.act)}" aria-pressed="${r.act===S.act}"><b>${esc(ACT_LABEL[r.act]||r.act)}</b><span>${eur(r.rate)} / ${esc(unitWord(r.unit,1))}</span></button>`).join("")||'<div class="empty">Nessuna attività configurata per il tuo ruolo.</div>';
   const r=curRate();
   $("a-qty").value="1";
+  $("a-cli-wrap").hidden=S.act!=="PT";
   updUnit();
 }
 function step(){const r=curRate();return r&&r.unit==="ora"?0.5:1}
@@ -298,10 +313,11 @@ $("f-add").addEventListener("submit",async e=>{
   if(!S.me||!S.act)return;
   const q=qty();if(!(q>0))return err("Inserisci una quantità maggiore di zero.");
   const b=$("b-save");b.disabled=true;b.textContent="Salvataggio…";
-  const data={staffId:S.me.id,date:$("a-date").value,act:S.act,qty:q,sede:$("a-sede").value,note:$("a-note").value.trim()};
+  const data={staffId:S.me.id,date:$("a-date").value,act:S.act,qty:q,sede:$("a-sede").value,note:$("a-note").value.trim(),cliente:$("a-cli").value.trim()};
+  if(data.act==="PT"&&!data.cliente){b.disabled=false;b.textContent="Registra";$("a-cli").focus();return err("Scrivi il nome del cliente del PT.")}
   try{
     S.mine=await run("api_add",data);S.month=S.mine.month;store("eo-sede",data.sede);
-    $("a-note").value="";toast(`Registrato: ${ACT_LABEL[data.act]||data.act} ${qn(q)} ${unitWord(curRate().unit,q)}`);renderMine();
+    $("a-note").value="";$("a-cli").value="";toast(`Registrato: ${ACT_LABEL[data.act]||data.act} ${qn(q)} ${unitWord(curRate().unit,q)}`);renderMine();
   }catch(x){err(x)}
   finally{b.disabled=false;b.textContent="Registra"}
 });
@@ -313,6 +329,7 @@ async function loadMine(){
 }
 function renderMine(){
   const d=S.mine;if(!d)return;
+  if(d.clients)$("cli-list").innerHTML=d.clients.map(c=>`<option value="${esc(c)}">`).join("");
   $("m-label").textContent=mLabel(d.month);$("m-lock").hidden=!d.closed;
   $("m-next").disabled=d.month>=S.init.today.slice(0,7);
   const by={};let tot=0;
@@ -325,7 +342,7 @@ function renderMine(){
   d.entries.forEach(e=>{
     if(e.date!==last){h+=`<div class="day">${esc(dLabel(e.date))}</div>`;last=e.date}
     const del=d.closed?"":`<button type="button" class="${S.armed===e.id?"danger":"ghost"}" data-del="${esc(e.id)}">${S.armed===e.id?"Conferma":"Elimina"}</button>`;
-    h+=`<div class="item"><div class="l"><b>${esc(ACT_LABEL[e.act]||e.act)} · ${qn(e.qty)} ${esc(unitWord(e.unit,e.qty))}</b><small>${esc([e.sede,e.note].filter(Boolean).join(" · ")||"—")}</small></div><div class="r"><span>${eur(e.amount)}</span>${del}</div></div>`;
+    h+=`<div class="item"><div class="l"><b>${esc(ACT_LABEL[e.act]||e.act)} · ${qn(e.qty)} ${esc(unitWord(e.unit,e.qty))}</b><small>${esc([e.cliente,e.sede,e.note].filter(Boolean).join(" · ")||"—")}</small></div><div class="r"><span>${eur(e.amount)}</span>${del}</div></div>`;
   });
   $("m-list").innerHTML=h;
 }
@@ -346,7 +363,7 @@ $("f-pin").addEventListener("submit",async e=>{
 $("p-cancel").onclick=()=>$("dlg-pin").close();
 function enterAdmin(){
   if(!S.xmonth){const t=S.init.today;S.xmonth=Number(t.slice(8,10))<=10?mAdd(t.slice(0,7),-1):t.slice(0,7)}
-  show("admin");loadAdmin();
+  show("admin");loadAdmin();adminAuto(true);
 }
 async function loadAdmin(){
   $("x-label").textContent=mLabel(S.xmonth);$("x-export").hidden=true;$("x-modulo").hidden=true;$("x-table").innerHTML='<tr><td class="zero">Caricamento…</td></tr>';
@@ -360,23 +377,46 @@ function renderAdmin(){
   $("b-close").textContent=d.closed?"Riapri mese":"Chiudi mese";
   $("b-close").className=d.closed?"":"danger";
   const nP=sm.rows.length,nE=d.entries.length;
-  $("x-tiles").innerHTML=`<div class="tile"><b>${nP}</b><span>Persone</span></div><div class="tile"><b>${nE}</b><span>Registrazioni</span></div><div class="tile"><b>${eur(sm.tot.activity)}</b><span>Attività</span></div><div class="tile"><b>${eur(sm.tot.fixed)}</b><span>Fissi</span></div><div class="tile tot"><b>${eur(sm.tot.total)}</b><span>Totale</span></div>`;
+  $("x-upd").textContent=d.updated?"aggiornato alle "+d.updated:"";
+  $("x-tiles").innerHTML=`<div class="tile"><b>${nE}</b><span>Registrazioni</span></div><div class="tile"><b>${eur(sm.tot.activity)}</b><span>Attività</span></div><div class="tile"><b>${eur(sm.tot.fixed)}</b><span>Fissi</span></div><div class="tile"><b>${eur(sm.tot.extra||0)}</b><span>Extra</span></div><div class="tile tot"><b>${eur(sm.tot.total)}</b><span>Totale mese</span></div>`;
   const cols=[["Classi","Ore classi"],["Ore","Ore"],["PT","PT"],["Schede","Schede"],["Pulizia","Ore pulizia"]];
   const cell=v=>v?`<td class="n">${qn(v)}</td>`:`<td class="n zero">–</td>`;
   let body="",role="";
   sm.rows.forEach(p=>{
-    if(p.role!==role){role=p.role;body+=`<tr class="grp"><td colspan="${cols.length+4}">${esc(ROLE_LABEL[role]||role)}</td></tr>`}
-    body+=`<tr><td>${esc(p.name)}</td>${cols.map(c=>cell(p.q[c[0]])).join("")}<td class="n">${eur(p.activity)}</td><td class="n">${p.fixed?eur(p.fixed):'<span class="zero">–</span>'}</td><td class="n"><b>${eur(p.total)}</b></td></tr>`;
+    if(p.role!==role){role=p.role;body+=`<tr class="grp"><td colspan="${cols.length+5}">${esc(ROLE_LABEL[role]||role)}</td></tr>`}
+    body+=`<tr><td>${esc(p.name)}</td>${cols.map(c=>cell(p.q[c[0]])).join("")}<td class="n">${eur(p.activity)}</td><td class="n">${p.fixed?eur(p.fixed):'<span class="zero">–</span>'}</td><td class="n">${p.extra?eur(p.extra):'<span class="zero">–</span>'}</td><td class="n"><b>${eur(p.total)}</b></td></tr>`;
   });
   const tq=c=>sm.rows.reduce((t,p)=>t+(p.q[c]||0),0);
-  $("x-table").innerHTML=nP?`<thead><tr><th>Nome</th>${cols.map(c=>`<th class="n">${c[1]}</th>`).join("")}<th class="n">Attività</th><th class="n">Fisso</th><th class="n">Totale</th></tr></thead><tbody>${body}<tr class="tot"><td>Totale</td>${cols.map(c=>cell(tq(c[0]))).join("")}<td class="n">${eur(sm.tot.activity)}</td><td class="n">${eur(sm.tot.fixed)}</td><td class="n">${eur(sm.tot.total)}</td></tr></tbody>`
+  $("x-table").innerHTML=nP?`<thead><tr><th>Nome</th>${cols.map(c=>`<th class="n">${c[1]}</th>`).join("")}<th class="n">Attività</th><th class="n">Fisso</th><th class="n">Extra</th><th class="n">Totale</th></tr></thead><tbody>${body}<tr class="tot"><td>Totale</td>${cols.map(c=>cell(tq(c[0]))).join("")}<td class="n">${eur(sm.tot.activity)}</td><td class="n">${eur(sm.tot.fixed)}</td><td class="n">${eur(sm.tot.extra||0)}</td><td class="n">${eur(sm.tot.total)}</td></tr></tbody>`
     :'<tbody><tr><td class="zero">Nessuna registrazione in questo mese.</td></tr></tbody>';
   const names=[...new Set(d.entries.map(e=>e.name))].sort();
   if(S.filter&&!names.includes(S.filter))S.filter="";
   $("x-filter").innerHTML='<option value="">Tutti</option>'+names.map(n=>`<option ${n===S.filter?"selected":""}>${esc(n)}</option>`).join("");
   const list=d.entries.filter(e=>!S.filter||e.name===S.filter);
-  $("x-list").innerHTML=list.length?list.map(e=>`<div class="item"><div class="l"><b>${esc(e.name)} · ${esc(ACT_LABEL[e.act]||e.act)} ${qn(e.qty)} ${esc(unitWord(e.unit,e.qty))}</b><small>${esc(e.date.split("-").reverse().join("/"))}${e.sede?" · "+esc(e.sede):""}${e.note?" · "+esc(e.note):""}</small></div><div class="r"><span>${eur(e.amount)}</span>${d.closed?"":`<button type="button" class="${S.armed===e.id?"danger":"ghost"}" data-xdel="${esc(e.id)}">${S.armed===e.id?"Conferma":"Elimina"}</button>`}</div></div>`).join(""):'<div class="empty">Nessuna registrazione.</div>';
+  $("x-list").innerHTML=list.length?list.map(e=>`<div class="item"><div class="l"><b>${esc(e.name)} · ${esc(ACT_LABEL[e.act]||e.act)} ${qn(e.qty)} ${esc(unitWord(e.unit,e.qty))}</b><small>${esc(e.date.split("-").reverse().join("/"))}${e.cliente?" · "+esc(e.cliente):""}${e.sede?" · "+esc(e.sede):""}${e.note?" · "+esc(e.note):""}</small></div><div class="r"><span>${eur(e.amount)}</span>${d.closed?"":`<button type="button" class="${S.armed===e.id?"danger":"ghost"}" data-xdel="${esc(e.id)}">${S.armed===e.id?"Conferma":"Elimina"}</button>`}</div></div>`).join(""):'<div class="empty">Nessuna registrazione.</div>';
+  renderAdminExtra();
 }
+function renderAdminExtra(){
+  const d=S.admin;
+  const sel=$("e-staff"),cur=sel.value;
+  sel.innerHTML='<option value="">Scegli…</option>'+(d.staff||[]).slice().sort((a,b)=>a.name.localeCompare(b.name,"it")).map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("");
+  sel.value=cur;
+  $("f-extra").hidden=d.closed;
+  $("x-extras").innerHTML=(d.extras||[]).length?d.extras.map(x=>`<div class="item"><div class="l"><b>${esc(x.name)}</b><small>${esc(x.desc)}</small></div><div class="r"><span>${eur(x.amount)}</span>${d.closed?"":`<button type="button" class="${S.armed===x.id?"danger":"ghost"}" data-xex="${esc(x.id)}">${S.armed===x.id?"Conferma":"Elimina"}</button>`}</div></div>`).join(""):'<div class="empty">Nessuna voce extra in questo mese.</div>';
+  const fx=(d.fixed||[]).filter(f=>f.active);
+  $("x-fixed").innerHTML=fx.length?"Fissi mensili applicati ogni mese: "+fx.map(f=>`${esc(f.name)} ${eur(f.amount)} (${esc(f.desc)})`).join(" · ")+". Si modificano nella tab “Voci fisse” dell'archivio.":"";
+  $("x-pt").innerHTML=(d.pt||[]).length?d.pt.map(t=>`<div class="day">${esc(t.name)} · ${t.clients.reduce((a,c)=>a+c.n,0)} PT</div>`+t.clients.map(c=>`<div class="item"><div class="l"><b>${esc(c.name)}</b></div><div class="r"><span>${qn(c.n)}</span></div></div>`).join("")).join(""):'<div class="empty">Nessun PT registrato in questo mese.</div>';
+}
+$("f-extra").addEventListener("submit",async e=>{
+  e.preventDefault();const b=$("b-extra");b.disabled=true;
+  const x={month:S.xmonth,staffId:$("e-staff").value,desc:$("e-desc").value.trim(),amount:Number(String($("e-amount").value).replace(/\s/g,"").replace(",","."))};
+  try{S.admin=await run("api_addExtra",S.pin,x);$("e-desc").value="";$("e-amount").value="";renderAdmin();toast("Voce aggiunta")}catch(z){adminErr(z)}finally{b.disabled=false}
+});
+let adminTimer=null;
+function adminAuto(on){clearInterval(adminTimer);adminTimer=null;if(on)adminTimer=setInterval(async()=>{
+  if($("v-admin").hidden||document.hidden||S.armed||document.activeElement&&["INPUT","SELECT","TEXTAREA"].includes(document.activeElement.tagName))return;
+  try{S.admin=await run("api_admin",S.pin,S.xmonth);renderAdmin()}catch(_){}
+},60000)}
 $("x-filter").onchange=e=>{S.filter=e.target.value;renderAdmin()};
 $("x-prev").onclick=()=>{S.xmonth=mAdd(S.xmonth,-1);S.armed=null;loadAdmin()};
 $("x-next").onclick=()=>{S.xmonth=mAdd(S.xmonth,1);S.armed=null;loadAdmin()};
@@ -408,7 +448,7 @@ $("b-copy").onclick=async()=>{
   try{await navigator.clipboard.writeText($("x-text").value);toast("Messaggio copiato")}
   catch(e){$("x-text").select();toast("Testo selezionato: copialo con Ctrl+C")}
 };
-$("b-exit").onclick=()=>{store("eo-pin",null);S.pin="";S.me?show("main"):renderPick()};
+$("b-exit").onclick=()=>{adminAuto(false);store("eo-pin",null);S.pin="";S.me?show("main"):renderPick()};
 
 /* ---------- click globali ---------- */
 document.addEventListener("click",async e=>{
@@ -418,6 +458,9 @@ document.addEventListener("click",async e=>{
   const del=e.target.closest("[data-del]");
   if(del){const id=del.dataset.del;if(S.armed!==id){S.armed=id;renderMine();return}
     S.armed=null;del.disabled=true;try{S.mine=await run("api_delete",S.me.id,id);renderMine();toast("Registrazione eliminata")}catch(x){err(x)}return}
+  const xe=e.target.closest("[data-xex]");
+  if(xe){const id=xe.dataset.xex;if(S.armed!==id){S.armed=id;renderAdmin();return}
+    S.armed=null;xe.disabled=true;try{S.admin=await run("api_deleteExtra",S.pin,id);renderAdmin();toast("Voce eliminata")}catch(x){adminErr(x)}return}
   const xd=e.target.closest("[data-xdel]");
   if(xd){const id=xd.dataset.xdel;if(S.armed!==id){S.armed=id;renderAdmin();return}
     S.armed=null;xd.disabled=true;try{S.admin=await run("api_adminDelete",S.pin,id);renderAdmin();toast("Registrazione eliminata")}catch(x){adminErr(x)}return}

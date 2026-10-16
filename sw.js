@@ -1,5 +1,5 @@
 // EffeOre service worker: guscio dell'app in cache, dati sempre dalla rete
-const CACHE = 'effeore-v2';
+const CACHE = 'effeore-v3';
 const SHELL = ['./', 'index.html', 'config.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png'];
 
