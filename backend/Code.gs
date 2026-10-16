@@ -1,7 +1,8 @@
 /***** EffeOre — registro attività staff Effestudio *****/
 const TZ = 'Europe/Rome';
 const SH = { staff: 'Staff', rates: 'Tariffe', log: 'Registro', cfg: 'Config', fixed: 'Voci fisse', extra: 'Voci extra', access: 'Accessi' };
-const ACT_ORDER = ['Classi', 'Ore', 'PT', 'Schede', 'Pulizia'];
+const ACT_ORDER = ['Classi', 'Ore', 'PT', 'Coaching', 'Schede', 'Pulizia'];
+const CLIENT_ACTS = ['PT', 'Coaching'];
 
 function doGet() {
   return HtmlService.createTemplateFromFile('Index').evaluate()
@@ -141,7 +142,9 @@ function api_add(token, e) {
   const sede = sedi_().indexOf(e.sede) >= 0 ? e.sede : '';
   const note = String(e.note || '').slice(0, 200);
   const cliente = String(e.cliente || '').replace(/\s+/g, ' ').trim().slice(0, 80);
-  if (rt.act === 'PT' && !cliente) throw new Error('Scrivi il nome del cliente del PT.');
+  if (CLIENT_ACTS.indexOf(rt.act) >= 0 && !cliente) throw new Error(rt.act === 'PT' ? 'Scrivi il nome del cliente del PT.' : 'Scrivi nome e cognome del cliente del coaching online.');
+  if (rt.act === 'Coaching' && log_().some(x => x.staffId === st.id && x.act === 'Coaching' && x.month === month && x.cliente.toLowerCase() === cliente.toLowerCase()))
+    throw new Error('Coaching online di ' + cliente + ' già registrato per ' + monthLabel_(month) + '.');
   const amount = Math.round(q * rt.rate * 100) / 100;
 
   const lock = LockService.getScriptLock(); lock.waitLock(20000);
@@ -179,9 +182,10 @@ function api_admin(pin, month) {
     .sort((a, b) => a.name.localeCompare(b.name) || a.date.localeCompare(b.date));
   const sum = summary_(entries, month);
   const pt = {};
-  entries.filter(e => e.act === 'PT').forEach(e => {
+  entries.filter(e => CLIENT_ACTS.indexOf(e.act) >= 0).forEach(e => {
     const k = e.staffId; pt[k] = pt[k] || { name: e.name, clients: {} };
-    pt[k].clients[e.cliente || '(senza nome)'] = (pt[k].clients[e.cliente || '(senza nome)'] || 0) + e.qty;
+    const c = (e.cliente || '(senza nome)') + (e.act === 'Coaching' ? ' · coaching online' : '');
+    pt[k].clients[c] = (pt[k].clients[c] || 0) + e.qty;
   });
   return {
     month: month, closed: closed_().indexOf(month) >= 0, summary: sum, entries: entries,
@@ -262,18 +266,18 @@ function api_export(pin, month) {
 
   // Riepilogo
   const r = out.getSheets()[0]; r.setName('Riepilogo');
-  const head = ['Nome', 'Ruolo', 'Ore classi', 'Ore', 'PT (n.)', 'Schede (n.)', 'Ore pulizia', 'Compenso attività €', 'Fisso mensile €', 'Extra / rettifiche €', 'Totale €'];
-  const rows = sum.rows.map(p => [p.name, p.role, p.q.Classi || 0, p.q.Ore || 0, p.q.PT || 0, p.q.Schede || 0, p.q.Pulizia || 0, p.activity, p.fixed, p.extra, null]);
+  const head = ['Nome', 'Ruolo', 'Ore classi', 'Ore', 'PT (n.)', 'Coaching online (n.)', 'Schede (n.)', 'Ore pulizia', 'Compenso attività €', 'Fisso mensile €', 'Extra / rettifiche €', 'Totale €'];
+  const rows = sum.rows.map(p => [p.name, p.role, p.q.Classi || 0, p.q.Ore || 0, p.q.PT || 0, p.q.Coaching || 0, p.q.Schede || 0, p.q.Pulizia || 0, p.activity, p.fixed, p.extra, null]);
   r.getRange(1, 1).setValue('Compensi staff Effestudio Training Center SSD a RL — ' + label).setFontWeight('bold').setFontSize(13);
   r.getRange(3, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#14263B').setFontColor('#FFFFFF');
   if (rows.length) {
     r.getRange(4, 1, rows.length, head.length).setValues(rows);
-    r.getRange(4, 11, rows.length, 1).setFormulas(rows.map((_, i) => ['=H' + (i + 4) + '+I' + (i + 4) + '+J' + (i + 4)]));
+    r.getRange(4, 12, rows.length, 1).setFormulas(rows.map((_, i) => ['=I' + (i + 4) + '+J' + (i + 4) + '+K' + (i + 4)]));
     const t = rows.length + 4;
     r.getRange(t, 1).setValue('Totale').setFontWeight('bold');
-    ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'].forEach(c => r.getRange(c + t).setFormula('=SUM(' + c + '4:' + c + (t - 1) + ')').setFontWeight('bold'));
-    r.getRange(4, 3, rows.length + 1, 5).setNumberFormat('0.##');
-    r.getRange(4, 8, rows.length + 1, 4).setNumberFormat('#,##0.00 €');
+    ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'].forEach(c => r.getRange(c + t).setFormula('=SUM(' + c + '4:' + c + (t - 1) + ')').setFontWeight('bold'));
+    r.getRange(4, 3, rows.length + 1, 6).setNumberFormat('0.##');
+    r.getRange(4, 9, rows.length + 1, 4).setNumberFormat('#,##0.00 €');
   }
   r.getRange(rows.length + 6, 1).setValue('Tariffe nette: ' + rates_().map(x => x.role + ' ' + x.act + ' ' + x.rate + ' €/' + x.unit).join(' · ')).setFontColor('#5E6B7A');
   r.setFrozenRows(3); r.autoResizeColumns(1, head.length);
@@ -413,7 +417,7 @@ function message_(label, sum) {
     const p = Math.abs(v).toFixed(2).split('.');
     return (v < 0 ? '-' : '') + p[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + p[1] + ' €';
   };
-  const unit = { Classi: 'h classi', Ore: 'h', PT: 'PT', Schede: 'schede', Pulizia: 'h pulizia' };
+  const unit = { Classi: 'h classi', Ore: 'h', PT: 'PT', Coaching: 'coaching online', Schede: 'schede', Pulizia: 'h pulizia' };
   const lines = sum.rows.map(p => {
     const det = ACT_ORDER.filter(a => p.q[a]).map(a => String(p.q[a]).replace('.', ',') + ' ' + unit[a]);
     if (p.fixed) det.push('fisso ' + eur(p.fixed));
