@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d6e7a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="EffeOre">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>EffeOre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: colonna unica da telefono (scegli nome → registra → il tuo mese), area amministrazione a tutta larghezza */
+:root{
+  --bg:#f3f5f6; --surface:#ffffff; --surface-2:#e9eef0; --fg:#121a1f; --muted:#5b6a72; --line:#d3dce0;
+  --accent:#0d6e7a; --accent-fg:#ffffff; --accent-soft:#d6ecef;
+  --ok:#1f7a45; --warn:#a86200; --crit:#b3261e; --warn-soft:#fbecd5; --crit-soft:#f8dcd9; --ok-soft:#dcf0e3;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#0f1417; --surface:#172025; --surface-2:#1e2a30; --fg:#e7eef1; --muted:#93a4ac; --line:#2c3a41;
+  --accent:#4fb9c6; --accent-fg:#071417; --accent-soft:#16363b;
+  --ok:#5cc489; --warn:#f0a845; --crit:#f07a70; --warn-soft:#3a2c14; --crit-soft:#3d1d1a; --ok-soft:#15301f; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:400 16px/1.4 var(--body)}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:560px;margin:0 auto;padding-inline:16px;padding-block:16px 56px;display:flex;flex-direction:column;gap:14px}
+.wrap.wide{max-width:1100px}
+h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:.01em;text-wrap:balance}
+h1{font-size:30px;font-weight:700;text-transform:uppercase}
+h2{font-size:20px;font-weight:700;text-transform:uppercase}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.brand small{display:block;color:var(--muted);font-size:13px}
+.sub{color:var(--muted);font-size:13px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card-h{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+button{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:9px 14px;font-weight:500}
+button:disabled{opacity:.5;cursor:not-allowed}
+.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.danger{color:var(--crit);border-color:var(--crit);background:transparent}
+.big{width:100%;padding:14px;font-size:17px}
+select,input,textarea{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px;min-width:0;width:100%}
+label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+label input,label select,label textarea{text-transform:none;letter-spacing:0;font-weight:400;color:var(--fg);font-size:16px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.group{display:flex;flex-direction:column;gap:8px}
+.group h3{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.names{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.names button{text-align:left;padding:12px 14px;font-weight:600}
+.names button:hover{border-color:var(--accent)}
+.who{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.who b{font-family:var(--display);font-size:24px;font-weight:600}
+.pill{display:inline-block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:99px;border:1px solid currentColor}
+.pill.op{color:var(--accent)} .pill.ne{color:var(--warn)} .pill.ad{color:var(--muted)}
+.pill.ok{color:var(--ok)} .pill.crit{color:var(--crit)}
+.acts{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.acts button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;text-align:left}
+.acts button b{font-size:16px}
+.acts button span{font-size:12px;color:var(--muted)}
+.acts button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.stepper{display:grid;grid-template-columns:52px 1fr 52px;gap:8px;align-items:center}
+.stepper button{height:52px;font-size:24px;padding:0}
+.stepper input{text-align:center;font-family:var(--display);font-size:28px;font-weight:600;height:52px;font-variant-numeric:tabular-nums}
+.unit{text-align:center;color:var(--muted);font-size:13px;margin-top:-4px}
+.month-nav{display:flex;align-items:center;gap:6px}
+.month-nav strong{font-family:var(--display);font-size:20px;font-weight:600;min-width:140px;text-align:center;text-transform:capitalize}
+.month-nav button{padding:6px 12px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
+.tile{background:var(--surface-2);border-radius:var(--r);padding:8px 10px;display:flex;flex-direction:column}
+.tile b{font-family:var(--display);font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+.tile span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.tile.tot{background:var(--accent);color:var(--accent-fg)} .tile.tot span{color:var(--accent-fg);opacity:.85}
+.list{display:flex;flex-direction:column}
+.day{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:10px 0 4px;border-bottom:1px solid var(--line)}
+.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.item .l{display:flex;flex-direction:column;min-width:0}
+.item .l b{font-weight:600}
+.item .l small{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .r{display:flex;align-items:center;gap:6px;flex:none;font-variant-numeric:tabular-nums}
+.item .r button{padding:5px 9px;font-size:13px}
+.empty{color:var(--muted);font-size:14px;padding:8px 0}
+.notice{border-radius:var(--r);padding:10px 12px;font-size:14px;background:var(--surface-2);color:var(--muted)}
+.notice.err{background:var(--crit-soft);color:var(--fg);border:1px solid var(--crit)}
+.notice.lock{background:var(--warn-soft);color:var(--fg);border:1px solid var(--warn)}
+.est{text-align:center;color:var(--muted);font-size:14px}
+.est b{color:var(--fg);font-variant-numeric:tabular-nums}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+td.n,th.n{text-align:right}
+tr.tot td{font-weight:700;border-top:2px solid var(--line)}
+tr.grp td{background:var(--surface-2);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.zero{color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.links{display:flex;gap:8px;flex-wrap:wrap}
+.links a{color:var(--accent);font-weight:600}
+textarea{min-height:200px;font-size:14px;font-family:var(--body)}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--fg);padding:0;width:min(400px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(10,16,20,.55)}
+dialog form{padding:18px;display:flex;flex-direction:column;gap:12px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:var(--r);font-size:15px;max-width:calc(100vw - 32px);z-index:9}
+.foot{text-align:center}
+body{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.install{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--r);padding:10px 12px;font-size:14px}
+.install b{display:block}
+.offline{background:var(--warn-soft);border:1px solid var(--warn);color:var(--fg)}
+.foot button{font-size:13px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ===== scelta nome ===== -->
+<div class="wrap" id="v-pick" hidden>
+  <div class="install" id="inst" data-inst hidden><div><b>Installa EffeOre sul telefono</b><span class="inst-txt">Avrai l'icona nella schermata Home, come un'app.</span></div><button class="primary" data-binst type="button">Installa</button></div>
+  <div class="notice offline" data-off hidden>Sei offline: collegati a internet per registrare.</div>
+  <div class="top"><div class="brand"><h1>EffeOre</h1><small>Registro attività staff · Effestudio Training Center</small></div></div>
+  <div class="card">
+    <h2>Chi sei?</h2>
+    <div class="sub">Tocca il tuo nome. Su questo telefono resterà salvato.</div>
+    <div id="pick-list" class="group"></div>
+  </div>
+  <div class="foot"><button class="ghost" data-go="admin">Area amministrazione</button></div>
+</div>
+
+<!-- ===== registrazione ===== -->
+<div class="wrap" id="v-main" hidden>
+  <div class="install" data-inst hidden><div><b>Installa EffeOre sul telefono</b><span class="inst-txt">Avrai l'icona nella schermata Home, come un'app.</span></div><button class="primary" data-binst type="button">Installa</button></div>
+  <div class="notice offline" data-off hidden>Sei offline: collegati a internet per registrare.</div>
+  <div class="top"><div class="brand"><h1>EffeOre</h1><small>Registro attività staff · Effestudio</small></div></div>
+
+  <div class="card">
+    <div class="who"><div><b id="me-name"></b><div><span class="pill" id="me-role"></span></div></div><button class="ghost" id="b-change">Cambia nome</button></div>
+  </div>
+
+  <form class="card" id="f-add" autocomplete="off">
+    <div class="card-h"><h2>Nuova registrazione</h2></div>
+    <label>Data<input type="date" id="a-date" required></label>
+    <div class="group"><div class="sub" style="text-transform:uppercase;letter-spacing:.06em;font-weight:600;font-size:12px">Attività</div><div class="acts" id="a-acts"></div></div>
+    <div class="group">
+      <label for="a-qty" id="a-qty-l">Quantità</label>
+      <div class="stepper"><button type="button" id="q-minus" aria-label="Meno">−</button><input id="a-qty" inputmode="decimal" required><button type="button" id="q-plus" aria-label="Più">+</button></div>
+      <div class="unit" id="a-unit"></div>
+    </div>
+    <div class="row2">
+      <label>Sede<select id="a-sede"></select></label>
+      <label>Note<input id="a-note" maxlength="200" placeholder="facoltativo"></label>
+    </div>
+    <div class="est" id="a-est"></div>
+    <button class="primary big" id="b-save">Registra</button>
+  </form>
+
+  <div class="card">
+    <div class="card-h"><h2>Il tuo mese</h2>
+      <div class="month-nav"><button type="button" id="m-prev" aria-label="Mese precedente">‹</button><strong id="m-label"></strong><button type="button" id="m-next" aria-label="Mese successivo">›</button></div>
+    </div>
+    <div id="m-lock" class="notice lock" hidden>Mese chiuso dall'amministrazione: non si può più modificare.</div>
+    <div class="tiles" id="m-tiles"></div>
+    <div class="list" id="m-list"></div>
+  </div>
+  <div class="foot"><button class="ghost" data-go="admin">Area amministrazione</button></div>
+</div>
+
+<!-- ===== amministrazione ===== -->
+<div class="wrap wide" id="v-admin" hidden>
+  <div class="top">
+    <div class="brand"><h1>EffeOre · Amministrazione</h1><small>Riepilogo compensi ed export per il commercialista</small></div>
+    <div class="actions"><button class="ghost" id="b-exit">Esci</button></div>
+  </div>
+  <div class="card">
+    <div class="card-h">
+      <div class="month-nav"><button type="button" id="x-prev" aria-label="Mese precedente">‹</button><strong id="x-label"></strong><button type="button" id="x-next" aria-label="Mese successivo">›</button></div>
+      <span id="x-state"></span>
+    </div>
+    <div class="tiles" id="x-tiles"></div>
+    <div class="actions">
+      <button class="primary" id="b-export">Crea export per commercialista</button>
+      <button id="b-close"></button>
+    </div>
+    <div id="x-export" hidden class="group">
+      <div class="links" id="x-links"></div>
+      <label>Messaggio da inviare<textarea id="x-text" readonly></textarea></label>
+      <div class="actions"><button id="b-copy">Copia messaggio</button></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Riepilogo compensi</h2>
+    <div class="tbl-wrap"><table id="x-table"></table></div>
+  </div>
+  <div class="card">
+    <div class="card-h"><h2>Dettaglio registrazioni</h2><select id="x-filter" style="width:auto"></select></div>
+    <div class="list" id="x-list"></div>
+  </div>
+</div>
+
+<dialog id="dlg-pin"><form id="f-pin">
+  <h2>Area amministrazione</h2>
+  <label>PIN<input type="password" id="p-pin" inputmode="numeric" autocomplete="off" required></label>
+  <div class="sub" id="p-err" hidden>PIN non valido.</div>
+  <div class="actions" style="justify-content:flex-end"><button type="button" class="ghost" id="p-cancel">Annulla</button><button class="primary">Entra</button></div>
+</form></dialog>
+
+<div class="notice err" id="err" hidden style="position:fixed;top:12px;left:16px;right:16px;max-width:560px;margin:0 auto;z-index:8"></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="config.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const S={init:null,me:null,act:null,month:null,mine:null,pin:"",xmonth:null,admin:null,filter:"",armed:null};
+const ROLE_CLASS={"Operativo":"op","New entry":"ne","Amministrativo":"ad"};
+const ROLE_LABEL={"Operativo":"Staff operativo","New entry":"New entry","Amministrativo":"Amministrazione e soci"};
+const UNIT={ora:["ora","ore"],lezione:["lezione","lezioni"],scheda:["scheda","schede"]};
+const ACT_LABEL={Classi:"Ore classi",Ore:"Ore",PT:"PT",Schede:"Schede",Pulizia:"Pulizia"};
+
+/* ---------- utilità ---------- */
+async function run(fn,...args){
+  if(!window.EFFEORE_API||/INCOLLA/.test(window.EFFEORE_API))throw new Error("App non ancora collegata all'archivio.");
+  if(!navigator.onLine)throw new Error("Sei offline: collegati a internet e riprova.");
+  let r;
+  try{r=await fetch(window.EFFEORE_API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({fn,args}),redirect:"follow",cache:"no-store"})}
+  catch(e){throw new Error("Connessione non riuscita. Controlla internet e riprova.")}
+  let j;try{j=await r.json()}catch(e){throw new Error("Risposta non valida dal server ("+r.status+"). Riprova tra poco.")}
+  if(!j.ok)throw new Error(j.error||"Errore sconosciuto.");
+  return j.data;
+}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function eur(v){return (Number(v)||0).toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2})+" €"}
+function qn(v){return (Number(v)||0).toLocaleString("it-IT",{maximumFractionDigits:2})}
+function unitWord(u,q){const w=UNIT[u]||[u,u];return Number(q)===1?w[0]:w[1]}
+function mLabel(m){const [y,mm]=m.split("-").map(Number);return new Date(y,mm-1,1).toLocaleDateString("it-IT",{month:"long",year:"numeric"})}
+function mAdd(m,n){const [y,mm]=m.split("-").map(Number);const d=new Date(y,mm-1+n,1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")}
+function dLabel(d){const [y,m,dd]=d.split("-").map(Number);return new Date(y,m-1,dd).toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"})}
+let tT;function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(tT);tT=setTimeout(()=>t.hidden=true,2800)}
+let eT;function err(e){const m=String(e&&e.message||e).replace(/^Error:\s*/,"");const x=$("err");x.textContent=m;x.hidden=false;clearTimeout(eT);eT=setTimeout(()=>x.hidden=true,6000)}
+function show(v){["pick","main","admin"].forEach(k=>$("v-"+k).hidden=k!==v);window.scrollTo(0,0)}
+function store(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}
+function load(k){try{return localStorage.getItem(k)}catch(e){return null}}
+
+/* ---------- scelta nome ---------- */
+function renderPick(){
+  const g={};S.init.staff.forEach(s=>(g[s.role]=g[s.role]||[]).push(s));
+  $("pick-list").innerHTML=["Operativo","New entry","Amministrativo"].filter(r=>g[r]).map(r=>
+    `<div class="group"><h3>${ROLE_LABEL[r]}</h3><div class="names">${g[r].map(s=>`<button type="button" data-me="${esc(s.id)}">${esc(s.name)}</button>`).join("")}</div></div>`).join("");
+  show("pick");
+}
+function setMe(id){
+  S.me=S.init.staff.find(s=>s.id===id)||null;
+  if(!S.me){store("eo-me",null);return renderPick()}
+  store("eo-me",S.me.id);
+  $("me-name").textContent=S.me.name;
+  const p=$("me-role");p.textContent=ROLE_LABEL[S.me.role]||S.me.role;p.className="pill "+(ROLE_CLASS[S.me.role]||"ad");
+  const acts=myRates();S.act=acts[0]?acts[0].act:null;
+  $("a-date").value=S.init.today;$("a-date").max=S.init.today;
+  $("a-sede").innerHTML='<option value="">—</option>'+S.init.sedi.map(x=>`<option>${esc(x)}</option>`).join("");
+  const last=load("eo-sede");if(last&&S.init.sedi.includes(last))$("a-sede").value=last;
+  $("a-note").value="";
+  renderActs();S.month=S.init.today.slice(0,7);show("main");loadMine();
+}
+function myRates(){return S.init.rates.filter(r=>r.role===(S.me&&S.me.role))}
+function curRate(){return myRates().find(r=>r.act===S.act)}
+
+/* ---------- form ---------- */
+function renderActs(){
+  const rs=myRates();
+  $("a-acts").innerHTML=rs.map(r=>`<button type="button" data-act="${esc(r.act)}" aria-pressed="${r.act===S.act}"><b>${esc(ACT_LABEL[r.act]||r.act)}</b><span>${eur(r.rate)} / ${esc(unitWord(r.unit,1))}</span></button>`).join("")||'<div class="empty">Nessuna attività configurata per il tuo ruolo.</div>';
+  const r=curRate();
+  $("a-qty").value="1";
+  updUnit();
+}
+function step(){const r=curRate();return r&&r.unit==="ora"?0.5:1}
+function qty(){return Number(String($("a-qty").value).replace(",","."))||0}
+function updUnit(){
+  const r=curRate();if(!r){$("a-unit").textContent="";$("a-est").innerHTML="";return}
+  const q=qty();
+  $("a-unit").textContent=unitWord(r.unit,q);
+  $("a-qty-l").textContent=r.unit==="ora"?"Ore":"Quantità";
+  $("a-est").innerHTML=q>0?`Compenso: <b>${eur(q*r.rate)}</b>`:"";
+}
+$("q-minus").onclick=()=>{const v=Math.max(step(),Math.round((qty()-step())*100)/100);$("a-qty").value=String(v).replace(".",",");updUnit()};
+$("q-plus").onclick=()=>{const v=Math.round((qty()+step())*100)/100;$("a-qty").value=String(v).replace(".",",");updUnit()};
+$("a-qty").oninput=updUnit;
+$("f-add").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!S.me||!S.act)return;
+  const q=qty();if(!(q>0))return err("Inserisci una quantità maggiore di zero.");
+  const b=$("b-save");b.disabled=true;b.textContent="Salvataggio…";
+  const data={staffId:S.me.id,date:$("a-date").value,act:S.act,qty:q,sede:$("a-sede").value,note:$("a-note").value.trim()};
+  try{
+    S.mine=await run("api_add",data);S.month=S.mine.month;store("eo-sede",data.sede);
+    $("a-note").value="";toast(`Registrato: ${ACT_LABEL[data.act]||data.act} ${qn(q)} ${unitWord(curRate().unit,q)}`);renderMine();
+  }catch(x){err(x)}
+  finally{b.disabled=false;b.textContent="Registra"}
+});
+
+/* ---------- il tuo mese ---------- */
+async function loadMine(){
+  $("m-label").textContent=mLabel(S.month);$("m-list").innerHTML='<div class="empty">Caricamento…</div>';$("m-tiles").innerHTML="";
+  try{S.mine=await run("api_mine",S.me.id,S.month);renderMine()}catch(x){err(x)}
+}
+function renderMine(){
+  const d=S.mine;if(!d)return;
+  $("m-label").textContent=mLabel(d.month);$("m-lock").hidden=!d.closed;
+  $("m-next").disabled=d.month>=S.init.today.slice(0,7);
+  const by={};let tot=0;
+  d.entries.forEach(e=>{by[e.act]=by[e.act]||{q:0,u:e.unit};by[e.act].q+=e.qty;tot+=e.amount});
+  const order=["Classi","Ore","PT","Schede","Pulizia"];
+  $("m-tiles").innerHTML=order.filter(a=>by[a]).map(a=>`<div class="tile"><b>${qn(by[a].q)}</b><span>${esc(ACT_LABEL[a])}${by[a].u==="ora"&&a!=="Classi"&&a!=="Ore"?" (ore)":""}</span></div>`).join("")+
+    `<div class="tile tot"><b>${eur(tot)}</b><span>Totale mese</span></div>`;
+  if(!d.entries.length){$("m-list").innerHTML='<div class="empty">Nessuna registrazione in questo mese.</div>';return}
+  let h="",last="";
+  d.entries.forEach(e=>{
+    if(e.date!==last){h+=`<div class="day">${esc(dLabel(e.date))}</div>`;last=e.date}
+    const del=d.closed?"":`<button type="button" class="${S.armed===e.id?"danger":"ghost"}" data-del="${esc(e.id)}">${S.armed===e.id?"Conferma":"Elimina"}</button>`;
+    h+=`<div class="item"><div class="l"><b>${esc(ACT_LABEL[e.act]||e.act)} · ${qn(e.qty)} ${esc(unitWord(e.unit,e.qty))}</b><small>${esc([e.sede,e.note].filter(Boolean).join(" · ")||"—")}</small></div><div class="r"><span>${eur(e.amount)}</span>${del}</div></div>`;
+  });
+  $("m-list").innerHTML=h;
+}
+$("m-prev").onclick=()=>{S.month=mAdd(S.month,-1);S.armed=null;loadMine()};
+$("m-next").onclick=()=>{S.month=mAdd(S.month,1);S.armed=null;loadMine()};
+
+/* ---------- amministrazione ---------- */
+async function openAdmin(){
+  const p=load("eo-pin");
+  if(p&&await run("api_adminCheck",p).catch(()=>false)){S.pin=p;enterAdmin();return}
+  $("p-pin").value="";$("p-err").hidden=true;$("dlg-pin").showModal();
+}
+$("f-pin").addEventListener("submit",async e=>{
+  e.preventDefault();const p=$("p-pin").value.trim();
+  if(await run("api_adminCheck",p).catch(()=>false)){S.pin=p;try{sessionStorage.setItem("eo-pin",p)}catch(_){}store("eo-pin",p);$("dlg-pin").close();enterAdmin()}
+  else $("p-err").hidden=false;
+});
+$("p-cancel").onclick=()=>$("dlg-pin").close();
+function enterAdmin(){
+  if(!S.xmonth){const t=S.init.today;S.xmonth=Number(t.slice(8,10))<=10?mAdd(t.slice(0,7),-1):t.slice(0,7)}
+  show("admin");loadAdmin();
+}
+async function loadAdmin(){
+  $("x-label").textContent=mLabel(S.xmonth);$("x-export").hidden=true;$("x-table").innerHTML='<tr><td class="zero">Caricamento…</td></tr>';
+  try{S.admin=await run("api_admin",S.pin,S.xmonth);renderAdmin()}catch(x){adminErr(x)}
+}
+function adminErr(x){if(/PIN/.test(String(x&&x.message||x))){store("eo-pin",null);S.pin="";S.me?show("main"):renderPick()}err(x)}
+function renderAdmin(){
+  const d=S.admin,sm=d.summary;
+  $("x-label").textContent=mLabel(d.month);
+  $("x-state").innerHTML=d.closed?'<span class="pill crit">Mese chiuso</span>':'<span class="pill ok">Mese aperto</span>';
+  $("b-close").textContent=d.closed?"Riapri mese":"Chiudi mese";
+  $("b-close").className=d.closed?"":"danger";
+  const nP=sm.rows.length,nE=d.entries.length;
+  $("x-tiles").innerHTML=`<div class="tile"><b>${nP}</b><span>Persone</span></div><div class="tile"><b>${nE}</b><span>Registrazioni</span></div><div class="tile"><b>${eur(sm.tot.activity)}</b><span>Attività</span></div><div class="tile"><b>${eur(sm.tot.fixed)}</b><span>Fissi</span></div><div class="tile tot"><b>${eur(sm.tot.total)}</b><span>Totale</span></div>`;
+  const cols=[["Classi","Ore classi"],["Ore","Ore"],["PT","PT"],["Schede","Schede"],["Pulizia","Ore pulizia"]];
+  const cell=v=>v?`<td class="n">${qn(v)}</td>`:`<td class="n zero">–</td>`;
+  let body="",role="";
+  sm.rows.forEach(p=>{
+    if(p.role!==role){role=p.role;body+=`<tr class="grp"><td colspan="${cols.length+4}">${esc(ROLE_LABEL[role]||role)}</td></tr>`}
+    body+=`<tr><td>${esc(p.name)}</td>${cols.map(c=>cell(p.q[c[0]])).join("")}<td class="n">${eur(p.activity)}</td><td class="n">${p.fixed?eur(p.fixed):'<span class="zero">–</span>'}</td><td class="n"><b>${eur(p.total)}</b></td></tr>`;
+  });
+  const tq=c=>sm.rows.reduce((t,p)=>t+(p.q[c]||0),0);
+  $("x-table").innerHTML=nP?`<thead><tr><th>Nome</th>${cols.map(c=>`<th class="n">${c[1]}</th>`).join("")}<th class="n">Attività</th><th class="n">Fisso</th><th class="n">Totale</th></tr></thead><tbody>${body}<tr class="tot"><td>Totale</td>${cols.map(c=>cell(tq(c[0]))).join("")}<td class="n">${eur(sm.tot.activity)}</td><td class="n">${eur(sm.tot.fixed)}</td><td class="n">${eur(sm.tot.total)}</td></tr></tbody>`
+    :'<tbody><tr><td class="zero">Nessuna registrazione in questo mese.</td></tr></tbody>';
+  const names=[...new Set(d.entries.map(e=>e.name))].sort();
+  if(S.filter&&!names.includes(S.filter))S.filter="";
+  $("x-filter").innerHTML='<option value="">Tutti</option>'+names.map(n=>`<option ${n===S.filter?"selected":""}>${esc(n)}</option>`).join("");
+  const list=d.entries.filter(e=>!S.filter||e.name===S.filter);
+  $("x-list").innerHTML=list.length?list.map(e=>`<div class="item"><div class="l"><b>${esc(e.name)} · ${esc(ACT_LABEL[e.act]||e.act)} ${qn(e.qty)} ${esc(unitWord(e.unit,e.qty))}</b><small>${esc(e.date.split("-").reverse().join("/"))}${e.sede?" · "+esc(e.sede):""}${e.note?" · "+esc(e.note):""}</small></div><div class="r"><span>${eur(e.amount)}</span>${d.closed?"":`<button type="button" class="${S.armed===e.id?"danger":"ghost"}" data-xdel="${esc(e.id)}">${S.armed===e.id?"Conferma":"Elimina"}</button>`}</div></div>`).join(""):'<div class="empty">Nessuna registrazione.</div>';
+}
+$("x-filter").onchange=e=>{S.filter=e.target.value;renderAdmin()};
+$("x-prev").onclick=()=>{S.xmonth=mAdd(S.xmonth,-1);S.armed=null;loadAdmin()};
+$("x-next").onclick=()=>{S.xmonth=mAdd(S.xmonth,1);S.armed=null;loadAdmin()};
+$("b-close").onclick=async()=>{
+  const close=!S.admin.closed;const b=$("b-close");
+  if(close&&S.armed!=="close"){S.armed="close";b.textContent="Conferma chiusura";return}
+  S.armed=null;b.disabled=true;
+  try{S.admin=await run("api_setClosed",S.pin,S.xmonth,close);renderAdmin();toast(close?"Mese chiuso: lo staff non può più modificarlo":"Mese riaperto")}catch(x){adminErr(x)}finally{b.disabled=false}
+};
+$("b-export").onclick=async()=>{
+  const b=$("b-export");b.disabled=true;b.textContent="Creo il file…";
+  try{
+    const r=await run("api_export",S.pin,S.xmonth);
+    $("x-links").innerHTML=`<a href="${esc(r.url)}" target="_blank" rel="noopener">Apri Google Sheet</a><a href="${esc(r.xlsx)}" target="_blank" rel="noopener">Scarica Excel</a><a href="${esc(r.pdf)}" target="_blank" rel="noopener">Scarica PDF</a>`;
+    $("x-text").value=r.text;$("x-export").hidden=false;toast("Export creato nella cartella Drive");
+  }catch(x){adminErr(x)}
+  finally{b.disabled=false;b.textContent="Crea export per commercialista"}
+};
+$("b-copy").onclick=async()=>{
+  try{await navigator.clipboard.writeText($("x-text").value);toast("Messaggio copiato")}
+  catch(e){$("x-text").select();toast("Testo selezionato: copialo con Ctrl+C")}
+};
+$("b-exit").onclick=()=>{store("eo-pin",null);S.pin="";S.me?show("main"):renderPick()};
+
+/* ---------- click globali ---------- */
+document.addEventListener("click",async e=>{
+  const me=e.target.closest("[data-me]");if(me)return setMe(me.dataset.me);
+  const ac=e.target.closest("[data-act]");if(ac){S.act=ac.dataset.act;renderActs();return}
+  const go=e.target.closest("[data-go]");if(go)return openAdmin();
+  const del=e.target.closest("[data-del]");
+  if(del){const id=del.dataset.del;if(S.armed!==id){S.armed=id;renderMine();return}
+    S.armed=null;del.disabled=true;try{S.mine=await run("api_delete",S.me.id,id);renderMine();toast("Registrazione eliminata")}catch(x){err(x)}return}
+  const xd=e.target.closest("[data-xdel]");
+  if(xd){const id=xd.dataset.xdel;if(S.armed!==id){S.armed=id;renderAdmin();return}
+    S.armed=null;xd.disabled=true;try{S.admin=await run("api_adminDelete",S.pin,id);renderAdmin();toast("Registrazione eliminata")}catch(x){adminErr(x)}return}
+});
+$("b-change").onclick=()=>{store("eo-me",null);S.me=null;renderPick()};
+
+/* ---------- PWA ---------- */
+let deferredPrompt=null;
+const standalone=()=>window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+function instShow(on,txt){if(load("eo-inst-hide"))on=false;document.querySelectorAll("[data-inst]").forEach(el=>{el.hidden=!on||standalone();if(txt)el.querySelector(".inst-txt").textContent=txt;el.querySelector("[data-binst]").hidden=isIOS})}
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;instShow(true)});
+window.addEventListener("appinstalled",()=>{deferredPrompt=null;instShow(false);toast("EffeOre installata")});
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-binst]");if(!b||!deferredPrompt)return;
+  deferredPrompt.prompt();const c=await deferredPrompt.userChoice.catch(()=>null);deferredPrompt=null;
+  if(c&&c.outcome==="accepted")instShow(false);
+});
+if(isIOS&&!standalone())instShow(true,"Tocca Condividi (il quadrato con la freccia) e poi “Aggiungi alla schermata Home”.");
+function netState(){document.querySelectorAll("[data-off]").forEach(el=>el.hidden=navigator.onLine)}
+window.addEventListener("online",()=>{netState();if(!S.init)boot()});window.addEventListener("offline",netState);netState();
+if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+
+/* ---------- avvio ---------- */
+async function boot(){
+  try{S.init=await run("api_init")}catch(x){err(x);$("pick-list").innerHTML='<div class="empty">Impossibile caricare lo staff. Controlla la connessione e riapri l\'app.</div>';show("pick");return}
+  const id=load("eo-me");
+  if(id&&S.init.staff.some(s=>s.id===id))setMe(id);else renderPick();
+}
+boot();
+</script>
+</body>
+</html>
