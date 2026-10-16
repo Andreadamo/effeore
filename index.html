@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0d6e7a">
+<meta name="theme-color" content="#141414">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="EffeOre">
@@ -13,20 +13,20 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>EffeOre</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
 <style>
 /* Layout: colonna unica da telefono (scegli nome → registra → il tuo mese), area amministrazione a tutta larghezza */
 :root{
-  --bg:#f3f5f6; --surface:#ffffff; --surface-2:#e9eef0; --fg:#121a1f; --muted:#5b6a72; --line:#d3dce0;
-  --accent:#0d6e7a; --accent-fg:#ffffff; --accent-soft:#d6ecef;
+  --bg:#f4f4f2; --surface:#ffffff; --surface-2:#ececea; --fg:#141414; --muted:#5f5f5c; --line:#dcdcd8;
+  --accent:#141414; --accent-fg:#ffffff; --accent-soft:#e6e6e3;
   --ok:#1f7a45; --warn:#a86200; --crit:#b3261e; --warn-soft:#fbecd5; --crit-soft:#f8dcd9; --ok-soft:#dcf0e3;
-  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --display:"Montserrat","Arial",system-ui,sans-serif;
   --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
   --r:8px;
 }
 @media (prefers-color-scheme: dark){:root{
-  --bg:#0f1417; --surface:#172025; --surface-2:#1e2a30; --fg:#e7eef1; --muted:#93a4ac; --line:#2c3a41;
-  --accent:#4fb9c6; --accent-fg:#071417; --accent-soft:#16363b;
+  --bg:#0e0e0e; --surface:#191919; --surface-2:#232323; --fg:#f2f2f0; --muted:#a3a3a0; --line:#2e2e2e;
+  --accent:#f2f2f0; --accent-fg:#141414; --accent-soft:#2b2b2b;
   --ok:#5cc489; --warn:#f0a845; --crit:#f07a70; --warn-soft:#3a2c14; --crit-soft:#3d1d1a; --ok-soft:#15301f; color-scheme:dark}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -37,9 +37,12 @@ button,select,input,textarea{font:inherit;color:inherit}
 .wrap{max-width:560px;margin:0 auto;padding-inline:16px;padding-block:16px 56px;display:flex;flex-direction:column;gap:14px}
 .wrap.wide{max-width:1100px}
 h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:.01em;text-wrap:balance}
-h1{font-size:30px;font-weight:700;text-transform:uppercase}
+h1{font-size:26px;font-weight:800;text-transform:uppercase;letter-spacing:.02em}
 h2{font-size:20px;font-weight:700;text-transform:uppercase}
 .top{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:50px;height:auto;flex:none;color:var(--fg)}
+.logo path,.logo .lf{fill:currentColor}.logo .lf2{fill:var(--bg)}.logo .li{stroke:var(--bg)}.logo .lr{fill:var(--bg)}
 .brand small{display:block;color:var(--muted);font-size:13px}
 .sub{color:var(--muted);font-size:13px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
@@ -126,7 +129,7 @@ body{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
 <div class="wrap" id="v-pick" hidden>
   <div class="install" id="inst" data-inst hidden><div><b>Installa EffeOre sul telefono</b><span class="inst-txt">Avrai l'icona nella schermata Home, come un'app.</span></div><button class="primary" data-binst type="button">Installa</button></div>
   <div class="notice offline" data-off hidden>Sei offline: collegati a internet per registrare.</div>
-  <div class="top"><div class="brand"><h1>EffeOre</h1><small>Registro attività staff · Effestudio Training Center</small></div></div>
+  <div class="top"><div class="brand"><svg viewBox="262 13 350 395" class="logo" aria-hidden="true"><path d="M 405.066406 22.933594 L 405.066406 214.226562 L 356.019531 232.363281 L 356.019531 185.3125 L 275.054688 226.617188 L 275.054688 172.921875 L 356.019531 130.324219 L 356.019531 108.382812 L 275.078125 150.46875 L 274.515625 91.082031 Z M 405.066406 22.933594 "/><path d="M 424.746094 22.933594 L 424.746094 207.191406 L 472.015625 189.828125 L 472.835938 106.140625 L 518.472656 134.140625 L 518.617188 186.378906 L 272.003906 276.894531 L 272.003906 375.667969 L 405.09375 375.625 L 405.066406 335.742188 L 308.726562 335.742188 L 308.664062 309.773438 L 424.460938 266.496094 L 424.460938 375.667969 L 569.382812 375.667969 L 569.382812 336.292969 L 473.429688 336.292969 L 473.429688 249.308594 L 570.128906 213.648438 L 570.128906 111.929688 Z M 424.746094 22.933594 "/><circle cx="525" cy="318" r="83.52" class="lr"/><circle cx="525" cy="318" r="72" class="lf"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(0 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(90 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(180 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(270 525 318)"/><line x1="525" y1="318" x2="525" y2="282.0" class="li" stroke-width="8.64" stroke-linecap="round" transform="rotate(-60 525 318)"/><line x1="525" y1="318" x2="525" y2="269.04" class="li" stroke-width="6.912000000000001" stroke-linecap="round" transform="rotate(60 525 318)"/><circle cx="525" cy="318" r="7.776000000000001" class="lf2"/></svg><div><h1>EffeOre</h1><small>Registro attività staff · Effestudio Training Center</small></div></div></div>
   <form class="card" id="f-login" autocomplete="on">
     <h2>Accedi</h2>
     <div class="sub" id="l-help">Inserisci la tua email: ti mandiamo un PIN di accesso. Su questo telefono resterai collegato.</div>
@@ -148,7 +151,7 @@ body{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
 <div class="wrap" id="v-main" hidden>
   <div class="install" data-inst hidden><div><b>Installa EffeOre sul telefono</b><span class="inst-txt">Avrai l'icona nella schermata Home, come un'app.</span></div><button class="primary" data-binst type="button">Installa</button></div>
   <div class="notice offline" data-off hidden>Sei offline: collegati a internet per registrare.</div>
-  <div class="top"><div class="brand"><h1>EffeOre</h1><small>Registro attività staff · Effestudio</small></div></div>
+  <div class="top"><div class="brand"><svg viewBox="262 13 350 395" class="logo" aria-hidden="true"><path d="M 405.066406 22.933594 L 405.066406 214.226562 L 356.019531 232.363281 L 356.019531 185.3125 L 275.054688 226.617188 L 275.054688 172.921875 L 356.019531 130.324219 L 356.019531 108.382812 L 275.078125 150.46875 L 274.515625 91.082031 Z M 405.066406 22.933594 "/><path d="M 424.746094 22.933594 L 424.746094 207.191406 L 472.015625 189.828125 L 472.835938 106.140625 L 518.472656 134.140625 L 518.617188 186.378906 L 272.003906 276.894531 L 272.003906 375.667969 L 405.09375 375.625 L 405.066406 335.742188 L 308.726562 335.742188 L 308.664062 309.773438 L 424.460938 266.496094 L 424.460938 375.667969 L 569.382812 375.667969 L 569.382812 336.292969 L 473.429688 336.292969 L 473.429688 249.308594 L 570.128906 213.648438 L 570.128906 111.929688 Z M 424.746094 22.933594 "/><circle cx="525" cy="318" r="83.52" class="lr"/><circle cx="525" cy="318" r="72" class="lf"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(0 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(90 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(180 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(270 525 318)"/><line x1="525" y1="318" x2="525" y2="282.0" class="li" stroke-width="8.64" stroke-linecap="round" transform="rotate(-60 525 318)"/><line x1="525" y1="318" x2="525" y2="269.04" class="li" stroke-width="6.912000000000001" stroke-linecap="round" transform="rotate(60 525 318)"/><circle cx="525" cy="318" r="7.776000000000001" class="lf2"/></svg><div><h1>EffeOre</h1><small>Registro attività staff · Effestudio</small></div></div></div>
 
   <div class="card">
     <div class="who"><div><b id="me-name"></b></div><button class="ghost" id="b-change">Esci</button></div>
@@ -187,7 +190,7 @@ body{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
 <!-- ===== amministrazione ===== -->
 <div class="wrap wide" id="v-admin" hidden>
   <div class="top">
-    <div class="brand"><h1>EffeOre · Amministrazione</h1><small>Riepilogo compensi ed export per il commercialista</small></div>
+    <div class="brand"><svg viewBox="262 13 350 395" class="logo" aria-hidden="true"><path d="M 405.066406 22.933594 L 405.066406 214.226562 L 356.019531 232.363281 L 356.019531 185.3125 L 275.054688 226.617188 L 275.054688 172.921875 L 356.019531 130.324219 L 356.019531 108.382812 L 275.078125 150.46875 L 274.515625 91.082031 Z M 405.066406 22.933594 "/><path d="M 424.746094 22.933594 L 424.746094 207.191406 L 472.015625 189.828125 L 472.835938 106.140625 L 518.472656 134.140625 L 518.617188 186.378906 L 272.003906 276.894531 L 272.003906 375.667969 L 405.09375 375.625 L 405.066406 335.742188 L 308.726562 335.742188 L 308.664062 309.773438 L 424.460938 266.496094 L 424.460938 375.667969 L 569.382812 375.667969 L 569.382812 336.292969 L 473.429688 336.292969 L 473.429688 249.308594 L 570.128906 213.648438 L 570.128906 111.929688 Z M 424.746094 22.933594 "/><circle cx="525" cy="318" r="83.52" class="lr"/><circle cx="525" cy="318" r="72" class="lf"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(0 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(90 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(180 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(270 525 318)"/><line x1="525" y1="318" x2="525" y2="282.0" class="li" stroke-width="8.64" stroke-linecap="round" transform="rotate(-60 525 318)"/><line x1="525" y1="318" x2="525" y2="269.04" class="li" stroke-width="6.912000000000001" stroke-linecap="round" transform="rotate(60 525 318)"/><circle cx="525" cy="318" r="7.776000000000001" class="lf2"/></svg><div><h1>EffeOre · Amministrazione</h1><small>Riepilogo compensi ed export per il commercialista</small></div></div>
     <div class="actions"><button class="ghost" id="b-exit">Esci</button></div>
   </div>
   <div class="card">
