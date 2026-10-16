@@ -527,3 +527,21 @@ function setup() {
   exportFolder_();
   Logger.log('Pronto. Staff attivi: ' + staff_().filter(s => s.active).length + ' · Tariffe: ' + rates_().length);
 }
+
+/* ---------- keep-warm: evita avvio lento dell'app ---------- */
+function keepWarm() {
+  try {
+    UrlFetchApp.fetch(ScriptApp.getService().getUrl(), {
+      method: 'post', contentType: 'text/plain', muteHttpExceptions: true,
+      payload: JSON.stringify({ fn: 'api_init', args: [] })
+    });
+  } catch (e) {}
+}
+
+function setupWarm() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'keepWarm').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('keepWarm').timeBased().everyMinutes(5).create();
+  GmailApp.getAliases();
+  keepWarm();
+  Logger.log('Keep-warm attivo ogni 5 minuti.');
+}
