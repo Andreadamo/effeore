@@ -296,12 +296,12 @@ $("f-login").addEventListener("submit",async e=>{
   e.preventDefault();
   if($("l-pin-wrap").hidden)return sendPin();
   const b=$("b-login");b.disabled=true;b.textContent="Accesso…";
-  try{const r=await run("api_login",$("l-email").value.trim(),$("l-pin").value.trim());store("eo-token",r.token);store("eo-email",$("l-email").value.trim());store("eo-pinsent",null);S.token=r.token;setMe(r.me)}
+  try{const r=await run("api_login",$("l-email").value.trim(),$("l-pin").value.trim());store("eo-token",r.token);store("eo-meobj",JSON.stringify(r.me));store("eo-email",$("l-email").value.trim());store("eo-pinsent",null);S.token=r.token;setMe(r.me)}
   catch(x){err(x)}finally{b.disabled=false;if(!S.me)b.textContent="Entra"}
 });
 $("b-havepin").onclick=()=>{if(!$("l-email").value.trim())return err("Inserisci prima la tua email.");loginStep(true);$("l-pin").focus()};
 $("b-resend").onclick=sendPin;
-function sessionLost(x){if(/Sessione scaduta/.test(String(x&&x.message||x))){store("eo-token",null);S.token="";renderPick();return true}return false}
+function sessionLost(x){if(/Sessione scaduta/.test(String(x&&x.message||x))){store("eo-token",null);store("eo-meobj",null);S.token="";renderPick();return true}return false}
 function setMe(me){
   S.me=me;if(!S.me)return renderPick();
   $("admin-link").hidden=!S.me.admin;
@@ -496,7 +496,7 @@ document.addEventListener("click",async e=>{
   if(xd){const id=xd.dataset.xdel;if(S.armed!==id){S.armed=id;renderAdmin();return}
     S.armed=null;xd.disabled=true;try{S.admin=await run("api_adminDelete",S.pin,id);renderAdmin();toast("Registrazione eliminata")}catch(x){adminErr(x)}return}
 });
-$("b-change").onclick=async()=>{const t=S.token;store("eo-token",null);S.token="";store("eo-pinsent",null);renderPick();if(t)run("api_logout",t).catch(()=>{})};
+$("b-change").onclick=async()=>{const t=S.token;store("eo-token",null);store("eo-meobj",null);S.token="";store("eo-pinsent",null);renderPick();if(t)run("api_logout",t).catch(()=>{})};
 
 /* ---------- PWA ---------- */
 let deferredPrompt=null;
@@ -517,11 +517,19 @@ if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.ser
 
 /* ---------- avvio ---------- */
 async function boot(){
-  try{S.init=await run("api_init")}catch(x){err(x);show("pick");return}
   store("eo-me",null);
   S.token=load("eo-token")||"";
-  if(!S.token)return renderPick();
-  try{setMe(await run("api_me",S.token))}catch(x){if(!sessionLost(x)){err(x);show("pick")}}
+  let cInit=null,cMe=null;try{cInit=JSON.parse(load("eo-init")||"null");cMe=JSON.parse(load("eo-meobj")||"null")}catch(_){}
+  const today=new Date();const iso=today.getFullYear()+"-"+String(today.getMonth()+1).padStart(2,"0")+"-"+String(today.getDate()).padStart(2,"0");
+  if(cInit){cInit.today=iso;S.init=cInit;if(S.token&&cMe)setMe(cMe);else renderPick()}
+  const pInit=run("api_init").then(d=>{store("eo-init",JSON.stringify(d));return d});
+  const pMe=S.token?run("api_me",S.token).then(m=>{store("eo-meobj",JSON.stringify(m));return m}):Promise.resolve(null);
+  try{
+    const d=await pInit;const changed=!cInit||JSON.stringify(cInit.rates)!==JSON.stringify(d.rates);S.init=d;
+    if(!S.token){if(!cInit)renderPick();return}
+    const m=await pMe;
+    if(!cMe||changed||cMe.role!==m.role)setMe(m);else S.me=m;
+  }catch(x){if(!sessionLost(x)){if(!cInit){err(x);show("pick")}}}
 }
 boot();
 </script>
