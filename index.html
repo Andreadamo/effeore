@@ -131,6 +131,7 @@ body{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset
     <h2>Accedi</h2>
     <div class="sub" id="l-help">Inserisci la tua email: ti mandiamo un PIN di accesso. Su questo telefono resterai collegato.</div>
     <label>Email<input type="email" id="l-email" autocomplete="email" inputmode="email" required placeholder="nome@esempio.it"></label>
+    <label id="l-name-wrap" hidden>Nome e cognome (solo la prima volta)<input id="l-name" autocomplete="name" maxlength="60" placeholder="es. Mario Rossi"></label>
     <div id="l-pin-wrap" class="group" hidden>
       <label>PIN ricevuto via email<input id="l-pin" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 cifre"></label>
     </div>
@@ -289,8 +290,13 @@ function loginStep(pin){
 async function sendPin(){
   const email=$("l-email").value.trim();if(!email)return err("Inserisci la tua email.");
   const b=$("b-login");b.disabled=true;b.textContent="Invio…";
-  try{await run("api_requestPin",email);store("eo-email",email);store("eo-pinsent","1");loginStep(true);$("l-pin").focus();toast("PIN inviato a "+email)}
-  catch(x){err(x);loginStep(!$("l-pin-wrap").hidden)}finally{b.disabled=false}
+  const nm=$("l-name-wrap").hidden?"":$("l-name").value.trim();
+  if(!$("l-name-wrap").hidden&&!nm){b.disabled=false;b.textContent="Invia PIN";$("l-name").focus();return err("Scrivi nome e cognome.")}
+  try{await run("api_requestPin",email,nm);$("l-name-wrap").hidden=true;store("eo-email",email);store("eo-pinsent","1");loginStep(true);$("l-pin").focus();toast("PIN inviato a "+email)}
+  catch(x){
+    if(/NEED_NAME/.test(String(x&&x.message||x))){$("l-name-wrap").hidden=false;loginStep(false);$("l-help").textContent="Prima volta con questa email: scrivi nome e cognome, poi premi Invia PIN.";$("l-name").focus()}
+    else{err(x);loginStep(!$("l-pin-wrap").hidden)}
+  }finally{b.disabled=false}
 }
 $("f-login").addEventListener("submit",async e=>{
   e.preventDefault();
@@ -301,7 +307,8 @@ $("f-login").addEventListener("submit",async e=>{
 });
 $("b-havepin").onclick=()=>{if(!$("l-email").value.trim())return err("Inserisci prima la tua email.");loginStep(true);$("l-pin").focus()};
 $("b-resend").onclick=sendPin;
-function sessionLost(x){if(/Sessione scaduta/.test(String(x&&x.message||x))){store("eo-token",null);store("eo-meobj",null);S.token="";renderPick();return true}return false}
+function clearMine(){try{Object.keys(localStorage).filter(k=>k.startsWith("eo-mine-")).forEach(k=>localStorage.removeItem(k))}catch(_){}}
+function sessionLost(x){if(/Sessione scaduta/.test(String(x&&x.message||x))){store("eo-token",null);clearMine();store("eo-meobj",null);S.token="";renderPick();return true}return false}
 function setMe(me){
   S.me=me;if(!S.me)return renderPick();
   $("admin-link").hidden=!S.me.admin;
@@ -311,7 +318,7 @@ function setMe(me){
   $("a-sede").innerHTML='<option value="">—</option>'+S.init.sedi.map(x=>`<option>${esc(x)}</option>`).join("");
   const last=load("eo-sede");if(last&&S.init.sedi.includes(last))$("a-sede").value=last;
   $("a-note").value="";
-  renderActs();S.month=S.init.today.slice(0,7);show("main");loadMine();
+  renderActs();S.month=S.init.today.slice(0,7);show("main");if(!S.skipMine)loadMine();
 }
 function myRates(){return S.init.rates.filter(r=>r.role===(S.me&&S.me.role))}
 function curRate(){return myRates().find(r=>r.act===S.act)}
@@ -346,17 +353,26 @@ $("f-add").addEventListener("submit",async e=>{
   const b=$("b-save");b.disabled=true;b.textContent="Salvataggio…";
   const data={date:$("a-date").value,act:S.act,qty:q,sede:$("a-sede").value,note:$("a-note").value.trim(),cliente:$("a-cli").value.trim()};
   if(CLIENT_ACTS.includes(data.act)&&!data.cliente){b.disabled=false;b.textContent="Registra";$("a-cli").focus();return err(data.act==="PT"?"Scrivi il nome del cliente del PT.":"Scrivi nome e cognome del cliente del coaching online.")}
-  try{
-    S.mine=await run("api_add",S.token,data);S.month=S.mine.month;store("eo-sede",data.sede);
-    $("a-note").value="";$("a-cli").value="";toast(`Registrato: ${ACT_LABEL[data.act]||data.act} ${qn(q)} ${unitWord(curRate().unit,q)}`);renderMine();
-  }catch(x){if(!sessionLost(x))err(x)}
-  finally{b.disabled=false;b.textContent="Registra"}
+  const r0=curRate(),m=data.date.slice(0,7),prev=S.mine;
+  const tmp={id:"tmp"+Date.now(),date:data.date,month:m,act:data.act,qty:q,unit:r0.unit,rate:r0.rate,amount:Math.round(q*r0.rate*100)/100,sede:data.sede,note:data.note,cliente:data.cliente,created:new Date().toISOString(),pending:true};
+  const base=(prev&&prev.month===m)?prev:(cachedMine(m)||{month:m,closed:false,entries:[],clients:[]});
+  S.month=m;S.mine=Object.assign({},base,{entries:[tmp].concat(base.entries||[]).sort((a,b)=>(b.date+b.created).localeCompare(a.date+a.created))});renderMine();
+  $("a-note").value="";$("a-cli").value="";b.disabled=false;b.textContent="Registra";
+  toast(`Registrato: ${ACT_LABEL[data.act]||data.act} ${qn(q)} ${unitWord(r0.unit,q)}`);store("eo-sede",data.sede);
+  try{const d=await run("api_add",S.token,data);cacheMine(d);if(S.month===d.month){S.mine=d;renderMine()}}
+  catch(x){if(S.month===m){S.mine=base;renderMine()}if(!sessionLost(x))err("Non salvato: "+String(x&&x.message||x).replace(/^Error:\s*/,""))}
 });
 
 /* ---------- il tuo mese ---------- */
-async function loadMine(){
-  $("m-label").textContent=mLabel(S.month);$("m-list").innerHTML='<div class="empty">Caricamento…</div>';$("m-tiles").innerHTML="";
-  try{S.mine=await run("api_mine",S.token,S.month);renderMine()}catch(x){if(!sessionLost(x))err(x)}
+function cacheMine(d){if(d&&d.month)store("eo-mine-"+d.month,JSON.stringify(d))}
+function cachedMine(m){try{return JSON.parse(load("eo-mine-"+m)||"null")}catch(_){return null}}
+async function loadMine(fresh){
+  $("m-label").textContent=mLabel(S.month);
+  const c=cachedMine(S.month);
+  if(c){S.mine=c;renderMine()}else{$("m-list").innerHTML='<div class="empty">Caricamento…</div>';$("m-tiles").innerHTML=""}
+  if(fresh){S.mine=fresh;cacheMine(fresh);renderMine();return}
+  const want=S.month;
+  try{const d=await run("api_mine",S.token,want);cacheMine(d);if(S.month===want){S.mine=d;renderMine()}}catch(x){if(!sessionLost(x))err(x)}
 }
 function renderMine(){
   const d=S.mine;if(!d)return;
@@ -372,7 +388,7 @@ function renderMine(){
   let h="",last="";
   d.entries.forEach(e=>{
     if(e.date!==last){h+=`<div class="day">${esc(dLabel(e.date))}</div>`;last=e.date}
-    const del=d.closed?"":`<button type="button" class="${S.armed===e.id?"danger":"ghost"}" data-del="${esc(e.id)}">${S.armed===e.id?"Conferma":"Elimina"}</button>`;
+    const del=(d.closed||e.pending)?(e.pending?'<small class="sub">salvo…</small>':""):`<button type="button" class="${S.armed===e.id?"danger":"ghost"}" data-del="${esc(e.id)}">${S.armed===e.id?"Conferma":"Elimina"}</button>`;
     h+=`<div class="item"><div class="l"><b>${esc(ACT_LABEL[e.act]||e.act)} · ${qn(e.qty)} ${esc(unitWord(e.unit,e.qty))}</b><small>${esc([e.cliente,e.sede,e.note].filter(Boolean).join(" · ")||"—")}</small></div><div class="r"><span>${eur(e.amount)}</span>${del}</div></div>`;
   });
   $("m-list").innerHTML=h;
@@ -488,7 +504,7 @@ document.addEventListener("click",async e=>{
   const go=e.target.closest("[data-go]");if(go)return openAdmin();
   const del=e.target.closest("[data-del]");
   if(del){const id=del.dataset.del;if(S.armed!==id){S.armed=id;renderMine();return}
-    S.armed=null;del.disabled=true;try{S.mine=await run("api_delete",S.token,id);renderMine();toast("Registrazione eliminata")}catch(x){if(!sessionLost(x))err(x)}return}
+    S.armed=null;del.disabled=true;try{S.mine=await run("api_delete",S.token,id);cacheMine(S.mine);renderMine();toast("Registrazione eliminata")}catch(x){if(!sessionLost(x))err(x)}return}
   const xe=e.target.closest("[data-xex]");
   if(xe){const id=xe.dataset.xex;if(S.armed!==id){S.armed=id;renderAdmin();return}
     S.armed=null;xe.disabled=true;try{S.admin=await run("api_deleteExtra",S.pin,id);renderAdmin();toast("Voce eliminata")}catch(x){adminErr(x)}return}
@@ -496,7 +512,7 @@ document.addEventListener("click",async e=>{
   if(xd){const id=xd.dataset.xdel;if(S.armed!==id){S.armed=id;renderAdmin();return}
     S.armed=null;xd.disabled=true;try{S.admin=await run("api_adminDelete",S.pin,id);renderAdmin();toast("Registrazione eliminata")}catch(x){adminErr(x)}return}
 });
-$("b-change").onclick=async()=>{const t=S.token;store("eo-token",null);store("eo-meobj",null);S.token="";store("eo-pinsent",null);renderPick();if(t)run("api_logout",t).catch(()=>{})};
+$("b-change").onclick=async()=>{const t=S.token;clearMine();store("eo-token",null);store("eo-meobj",null);S.token="";store("eo-pinsent",null);renderPick();if(t)run("api_logout",t).catch(()=>{})};
 
 /* ---------- PWA ---------- */
 let deferredPrompt=null;
@@ -521,14 +537,15 @@ async function boot(){
   S.token=load("eo-token")||"";
   let cInit=null,cMe=null;try{cInit=JSON.parse(load("eo-init")||"null");cMe=JSON.parse(load("eo-meobj")||"null")}catch(_){}
   const today=new Date();const iso=today.getFullYear()+"-"+String(today.getMonth()+1).padStart(2,"0")+"-"+String(today.getDate()).padStart(2,"0");
-  if(cInit){cInit.today=iso;S.init=cInit;if(S.token&&cMe)setMe(cMe);else renderPick()}
-  const pInit=run("api_init").then(d=>{store("eo-init",JSON.stringify(d));return d});
-  const pMe=S.token?run("api_me",S.token).then(m=>{store("eo-meobj",JSON.stringify(m));return m}):Promise.resolve(null);
+  if(cInit){cInit.today=iso;S.init=cInit;if(S.token&&cMe){S.skipMine=true;setMe(cMe);S.skipMine=false;const c=cachedMine(iso.slice(0,7));if(c){S.mine=c;renderMine()}}else renderPick()}
   try{
-    const d=await pInit;const changed=!cInit||JSON.stringify(cInit.rates)!==JSON.stringify(d.rates);S.init=d;
-    if(!S.token){if(!cInit)renderPick();return}
-    const m=await pMe;
-    if(!cMe||changed||cMe.role!==m.role)setMe(m);else S.me=m;
+    const r=await run("api_boot",S.token,iso.slice(0,7));const d=r.init;
+    store("eo-init",JSON.stringify(d));
+    const changed=!cInit||JSON.stringify(cInit.rates)!==JSON.stringify(d.rates);S.init=d;
+    if(!S.token||!r.me){if(!cInit||!S.token)renderPick();return}
+    store("eo-meobj",JSON.stringify(r.me));cacheMine(r.mine);
+    if(!cMe||changed||cMe.role!==r.me.role){S.skipMine=true;setMe(r.me);S.skipMine=false}else S.me=r.me;
+    if(S.month===r.mine.month){S.mine=r.mine;renderMine()}
   }catch(x){if(!sessionLost(x)){if(!cInit){err(x);show("pick")}}}
 }
 boot();

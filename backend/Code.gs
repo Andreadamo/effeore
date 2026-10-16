@@ -12,7 +12,7 @@ function doGet() {
 }
 
 /* ================= ingresso dati per la PWA ================= */
-const API_FN = ['api_init', 'api_requestPin', 'api_login', 'api_me', 'api_logout', 'api_mine', 'api_add', 'api_delete', 'api_adminCheck', 'api_admin', 'api_adminDelete', 'api_setClosed', 'api_export', 'api_modulo', 'api_addExtra', 'api_deleteExtra'];
+const API_FN = ['api_boot', 'api_init', 'api_requestPin', 'api_login', 'api_me', 'api_logout', 'api_mine', 'api_add', 'api_delete', 'api_adminCheck', 'api_admin', 'api_adminDelete', 'api_setClosed', 'api_export', 'api_modulo', 'api_addExtra', 'api_deleteExtra'];
 
 function doPost(e) {
   let out;
@@ -29,11 +29,11 @@ function doPost(e) {
 
 /* ================= accesso staff (email + PIN) ================= */
 
-function api_requestPin(email) {
+function api_requestPin(email, fullName) {
   email = String(email || '').trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error('Email non valida.');
-  const st = staff_().find(s => s.active && s.email === email);
-  if (!st) throw new Error('Questa email non è registrata. Chiedi ad Andrea di aggiungerla.');
+  let st = staff_().find(s => s.active && s.email === email);
+  if (!st) st = register_(email, fullName);
   const cache = CacheService.getScriptCache(), k = 'pinreq_' + st.id;
   if (cache.get(k)) throw new Error('PIN già inviato da poco: controlla la posta (anche lo spam) o riprova tra 2 minuti.');
   const pin = String(Math.floor(100000 + Math.random() * 900000));
@@ -41,9 +41,50 @@ function api_requestPin(email) {
   GmailApp.sendEmail(email, 'EffeOre: il tuo PIN di accesso',
     'Ciao ' + st.name.split(' ')[0] + ',\n\nil tuo PIN per accedere a EffeOre è: ' + pin +
     '\n\nApri l\'app: https://andreadamo.github.io/effeore/\nInserisci la tua email e questo PIN. Su quel telefono resterai collegato.\n\nNon condividere il PIN con nessuno.\n\nEffestudio Training Center',
-    { name: 'EffeOre · Effestudio' });
+    { name: 'Effestudio Training Center' });
   cache.put(k, '1', 120);
   return { sent: true };
+}
+
+/* prima registrazione: l'email si lega al nome già presente nello staff, oppure crea una nuova scheda */
+function normName_(v) {
+  return String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z ]/g, ' ').split(/\s+/).filter(String).sort().join(' ');
+}
+function register_(email, fullName) {
+  const name = String(fullName || '').replace(/\s+/g, ' ').trim();
+  if (!name) throw new Error('NEED_NAME');
+  if (name.split(' ').length < 2 || name.length > 60) throw new Error('Scrivi nome e cognome.');
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    clearCache_();
+    const all = staff_(), key = normName_(name);
+    const match = all.find(s => normName_(s.name) === key);
+    let st, isNew = false;
+    if (match) {
+      if (!match.active) throw new Error('Il tuo profilo non è attivo. Chiedi ad Andrea.');
+      if (match.email && match.email !== email) throw new Error('Questo nome è già collegato a un\'altra email. Usa quella oppure chiedi ad Andrea.');
+      setStaffCell_(match.id, 8, email);
+      st = match; st.email = email;
+    } else {
+      const ids = all.map(s => s.id);
+      let id = key.split(' ').join('.').slice(0, 30), n = 2;
+      const base = id;
+      while (ids.indexOf(id) >= 0) id = base + n++;
+      const sh = sheet_(SH.staff), r = sh.getLastRow() + 1;
+      sh.getRange(r, 1, 1, 8).setNumberFormat('@').setValues([[id, name, 'New entry', 'SI', '', name, '', email]]);
+      st = { id: id, name: name, role: 'New entry', active: true, email: email, order: 999 };
+      isNew = true;
+    }
+    clearCache_();
+    try {
+      const to = adminIds_().map(id => (all.find(s => s.id === id) || {}).email).filter(String).join(',');
+      if (to) GmailApp.sendEmail(to, 'EffeOre: ' + (isNew ? 'nuova registrazione' : 'email collegata') + ' - ' + name,
+        (isNew ? 'Nuova persona registrata su EffeOre (ruolo provvisorio: New entry, cambialo nel foglio Staff se serve).' : 'Email collegata al profilo esistente.') +
+        '\n\nNome inserito: ' + name + '\nEmail: ' + email + '\nProfilo: ' + st.name + ' (' + st.role + ')\n\nSe non è corretto, cancella l\'email nella colonna H del foglio Staff.',
+        { name: 'Effestudio Training Center' });
+    } catch (e) {}
+    return st;
+  } finally { lock.releaseLock(); }
 }
 
 function api_login(email, pin) {
@@ -67,6 +108,7 @@ function api_login(email, pin) {
 function api_me(token) { return meOut_(who_(token)); }
 
 function api_logout(token) {
+  try { CacheService.getScriptCache().remove('tok_' + String(token || '').slice(0, 200)); } catch (e) {}
   const r = tokenRow_(token);
   if (r > 0) sheet_(SH.access).deleteRow(r);
   return true;
@@ -88,9 +130,14 @@ function tokenRow_(token) {
   return -1;
 }
 function who_(token) {
-  const r = tokenRow_(token);
-  if (r < 0) throw new Error('Sessione scaduta: accedi di nuovo.');
-  const id = sheet_(SH.access).getRange(r, 2).getDisplayValue();
+  const cache = CacheService.getScriptCache(), ck = 'tok_' + String(token || '').slice(0, 200);
+  let id = String(token || '').length >= 20 ? cache.get(ck) : null;
+  if (!id) {
+    const r = tokenRow_(token);
+    if (r < 0) throw new Error('Sessione scaduta: accedi di nuovo.');
+    id = sheet_(SH.access).getRange(r, 2).getDisplayValue();
+    cache.put(ck, id, 21600);
+  }
   const st = staff_().find(s => s.id === id && s.active);
   if (!st) throw new Error('Sessione scaduta: accedi di nuovo.');
   return st;
@@ -98,7 +145,7 @@ function who_(token) {
 function setStaffCell_(id, col, val) {
   const sh = sheet_(SH.staff), n = sh.getLastRow();
   const ids = sh.getRange(2, 1, n - 1, 1).getDisplayValues();
-  for (let i = 0; i < ids.length; i++) if (String(ids[i][0]).trim() === id) { sh.getRange(i + 2, col).setNumberFormat('@').setValue(val); return; }
+  for (let i = 0; i < ids.length; i++) if (String(ids[i][0]).trim() === id) { sh.getRange(i + 2, col).setNumberFormat('@').setValue(val); clearCache_(); return; }
 }
 
 /* ================= API staff ================= */
@@ -112,13 +159,28 @@ function api_init() {
   };
 }
 
+function api_boot(token, month) {
+  const out = { init: api_init(), me: null, mine: null };
+  if (token) {
+    const st = who_(token);
+    out.me = meOut_(st);
+    const m = /^\d{4}-\d{2}$/.test(String(month)) ? month : out.init.today.slice(0, 7);
+    out.mine = mine_(st.id, m);
+  }
+  return out;
+}
+
 function api_mine(token, month) {
   checkMonth_(month);
-  const staffId = who_(token).id;
-  const entries = log_().filter(e => e.staffId === staffId && e.month === month)
+  return mine_(who_(token).id, month);
+}
+
+function mine_(staffId, month) {
+  const all = log_();
+  const entries = all.filter(e => e.staffId === staffId && e.month === month)
     .sort((a, b) => (b.date + b.created).localeCompare(a.date + a.created));
   const clients = {};
-  log_().forEach(x => { if (x.staffId === staffId && x.cliente) clients[x.cliente] = 1; });
+  all.forEach(x => { if (x.staffId === staffId && x.cliente) clients[x.cliente] = 1; });
   return { month: month, closed: closed_().indexOf(month) >= 0, entries: entries, clients: Object.keys(clients).sort((a, b) => a.localeCompare(b)) };
 }
 
@@ -153,9 +215,11 @@ function api_add(token, e) {
     const dup = log_().some(x => x.staffId === st.id && x.date === date && x.act === rt.act && x.qty === q && x.sede === sede && x.cliente === cliente &&
       (now - new Date(x.created)) < 120000);
     if (dup) throw new Error('Registrazione già salvata un attimo fa.');
+    MEMO.log = null;
     sheet_(SH.log).appendRow([Utilities.getUuid().slice(0, 8), date, month, st.id, st.name, st.role, rt.act, q, rt.unit, rt.rate, amount, sede, note, now.toISOString(), cliente]);
   } finally { lock.releaseLock(); }
-  return api_mine(token, month);
+  MEMO.log = null;
+  return mine_(st.id, month);
 }
 
 function api_delete(token, id) {
@@ -169,7 +233,8 @@ function api_delete(token, id) {
     month = e.month;
     deleteRow_(id);
   } finally { lock.releaseLock(); }
-  return api_mine(token, month);
+  MEMO.log = null;
+  return mine_(staffId, month);
 }
 
 /* ================= API amministrazione ================= */
@@ -430,16 +495,35 @@ function message_(label, sum) {
 
 /* ================= foglio ================= */
 
+const MEMO = {};
+const CACHED = [SH.staff, SH.rates, SH.cfg];
+function clearCache_() {
+  CACHED.forEach(n => delete MEMO['d_' + n]);
+  try { CacheService.getScriptCache().removeAll(CACHED.map(n => 'sh_' + n)); } catch (e) {}
+}
+function onEdit(e) {
+  try { if (CACHED.indexOf(e.range.getSheet().getName()) >= 0) CacheService.getScriptCache().removeAll(CACHED.map(n => 'sh_' + n)); } catch (x) {}
+}
+function ss_() { return MEMO.ss || (MEMO.ss = SpreadsheetApp.getActive()); }
+
 function sheet_(n) {
-  const s = SpreadsheetApp.getActive().getSheetByName(n);
+  const s = ss_().getSheetByName(n);
   if (!s) throw new Error('Tab "' + n + '" non trovata nel foglio.');
   return s;
 }
 
 function data_(n) {
-  const s = sheet_(n), r = s.getLastRow(), c = s.getLastColumn();
-  if (r < 2) return [];
-  return s.getRange(2, 1, r - 1, c).getValues();
+  const mk = 'd_' + n;
+  if (MEMO[mk]) return MEMO[mk];
+  const cached = CACHED.indexOf(n) >= 0;
+  if (cached) {
+    const c = CacheService.getScriptCache().get('sh_' + n);
+    if (c) return (MEMO[mk] = JSON.parse(c));
+  }
+  const s = sheet_(n), r = s.getLastRow(), c = s.getLastColumn(), f = n === SH.cfg ? 1 : 2;
+  const v = r < f ? [] : (cached ? s.getRange(f, 1, r - f + 1, c).getDisplayValues() : s.getRange(f, 1, r - f + 1, c).getValues());
+  if (cached) { try { CacheService.getScriptCache().put('sh_' + n, JSON.stringify(v), 600); } catch (e) {} }
+  return (MEMO[mk] = v);
 }
 
 function staff_() {
@@ -461,7 +545,8 @@ function rates_() {
 }
 
 function log_() {
-  return data_(SH.log).filter(r => String(r[0]).trim()).map(r => ({
+  if (MEMO.log) return MEMO.log;
+  return MEMO.log = data_(SH.log).filter(r => String(r[0]).trim()).map(r => ({
     id: String(r[0]), date: dstr_(r[1]), month: dstr_(r[1]).slice(0, 7),
     staffId: String(r[3]), name: String(r[4]), role: String(r[5]), act: String(r[6]),
     qty: num_(r[7]), unit: String(r[8]), rate: num_(r[9]), amount: num_(r[10]),
@@ -471,6 +556,7 @@ function log_() {
 }
 
 function deleteRow_(id) {
+  MEMO.log = null;
   const s = sheet_(SH.log), n = s.getLastRow();
   if (n < 2) return;
   const ids = s.getRange(2, 1, n - 1, 1).getDisplayValues();
@@ -478,8 +564,8 @@ function deleteRow_(id) {
 }
 
 function cfgRow_(key) {
-  const s = sheet_(SH.cfg), v = s.getDataRange().getDisplayValues();
-  for (let i = 0; i < v.length; i++) if (v[i][0] === key) return { row: i + 1, value: String(v[i][1]).trim() };
+  const v = data_(SH.cfg);
+  for (let i = 0; i < v.length; i++) if (String(v[i][0]).trim() === key) return { row: i + 1, value: String(v[i][1]).trim() };
   return null;
 }
 function cfg_(key) { const r = cfgRow_(key); return r ? r.value : ''; }
@@ -487,6 +573,7 @@ function setCfg_(key, val) {
   const s = sheet_(SH.cfg), r = cfgRow_(key);
   const row = r ? r.row : s.getLastRow() + 1;
   s.getRange(row, 1, 1, 2).setNumberFormat('@').setValues([[key, val]]);
+  clearCache_();
 }
 
 function closed_() { return cfg_('Mesi chiusi').split(/[,;\s]+/).filter(m => /^\d{4}-\d{2}$/.test(m)); }
