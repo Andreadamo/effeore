@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://script.google.com" crossorigin>
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<link rel="dns-prefetch" href="https://script.googleusercontent.com">
 <meta name="theme-color" content="#141414">
 <meta name="robots" content="noindex">
 <link rel="icon" type="image/png" href="icons/favicon-32.png">
@@ -101,6 +104,14 @@ td small{display:block;color:var(--muted);font-size:12px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:var(--r);z-index:9}
 .empty{color:var(--muted);padding:8px 0}
 @media print{.bar,.filters,.tabs,button{display:none!important}body{background:#fff;color:#000}.card{break-inside:avoid}.scroll{max-height:none}}
+
+/* fluidità touch (Android/iOS) */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+*{-webkit-tap-highlight-color:transparent}
+button,a,select,label,summary,[role=button]{touch-action:manipulation}
+button:not(:disabled):active{opacity:.75}
+@media (pointer:coarse){input,select,textarea{font-size:16px!important}}
+img{max-width:100%}
 </style>
 </head>
 <body>
