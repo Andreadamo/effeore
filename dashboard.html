@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#141414">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="icons/favicon-32.png">
+<title>EffeOre Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f4f4f2; --surface:#ffffff; --surface-2:#ececea; --fg:#141414; --muted:#5f5f5c; --line:#dcdcd8;
+  --accent:#141414; --accent-fg:#ffffff; --accent-soft:#e6e6e3;
+  --ok:#1f7a45; --warn:#a86200; --crit:#b3261e; --warn-soft:#fbecd5; --crit-soft:#f8dcd9; --ok-soft:#dcf0e3;
+  --heat:#141414;
+  --display:"Montserrat","Arial",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#0e0e0e; --surface:#191919; --surface-2:#232323; --fg:#f2f2f0; --muted:#a3a3a0; --line:#2e2e2e;
+  --accent:#f2f2f0; --accent-fg:#141414; --accent-soft:#2b2b2b;
+  --ok:#5cc489; --warn:#f0a845; --crit:#f07a70; --warn-soft:#3a2c14; --crit-soft:#3d1d1a; --ok-soft:#15301f;
+  --heat:#f2f2f0; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+html{scroll-behavior:smooth;scroll-padding-top:120px}
+body{background:var(--bg);color:var(--fg);font:400 15px/1.4 var(--body)}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:.01em}
+h1{font-size:20px;font-weight:800;text-transform:uppercase}
+h2{font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.logo{width:40px;height:auto;flex:none;color:var(--fg)}
+.logo path,.logo .lf{fill:currentColor}.logo .lf2{fill:var(--bg)}.logo .li{stroke:var(--bg)}.logo .lr{fill:var(--bg)}
+button{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:7px 12px;font-weight:500}
+button:disabled{opacity:.5;cursor:not-allowed}
+.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+select,input{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:7px 10px;min-width:0}
+.muted{color:var(--muted)} .zero{color:var(--muted)}
+.pill{display:inline-block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:2px 8px;border-radius:99px;border:1px solid currentColor}
+.pill.ok{color:var(--ok)} .pill.crit{color:var(--crit)}
+/* barra in alto */
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.bar-in{max-width:1400px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.brand small{display:block;color:var(--muted);font-size:12px}
+.mnav{display:flex;align-items:center;gap:6px}
+.mnav strong{font-family:var(--display);font-size:16px;font-weight:700;min-width:150px;text-align:center;text-transform:capitalize}
+.tabs{max-width:1400px;margin:0 auto;padding:0 24px;display:flex;gap:4px}
+.tabs a{padding:8px 12px;color:var(--muted);text-decoration:none;font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid transparent}
+.tabs a:hover{color:var(--fg);border-bottom-color:var(--line)}
+main{max-width:1400px;margin:0 auto;padding:20px 24px 60px;display:flex;flex-direction:column;gap:20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0}
+.card-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.card-h .sub{color:var(--muted);font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.kpi b{display:block;font-family:var(--display);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.kpi span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.kpi.tot{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)} .kpi.tot span{color:var(--accent-fg);opacity:.8}
+.grid2{display:grid;grid-template-columns:minmax(300px,1fr) 2fr;gap:20px}
+@media (max-width:1000px){.grid2{grid-template-columns:1fr}}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;font-weight:600;background:var(--surface);position:sticky;top:0}
+td{padding:8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;vertical-align:top}
+td.n,th.n{text-align:right}
+tr.tot td{font-weight:700;border-top:2px solid var(--fg);border-bottom:none}
+tr.grp td{background:var(--surface-2);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;padding:5px 8px}
+tbody tr:not(.grp):not(.tot):hover td{background:var(--surface-2)}
+td small{display:block;color:var(--muted);font-size:12px}
+.share{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.share i{display:block;height:6px;background:var(--fg);border-radius:3px;min-width:2px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.scroll{max-height:520px;overflow:auto}
+.tag{display:inline-block;font-size:11px;padding:1px 6px;border-radius:4px;background:var(--surface-2);color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+/* griglia pulizie */
+.cal{border-collapse:separate;border-spacing:2px;font-size:12px;width:auto}
+.cal th,.cal td{border:none;padding:0;text-align:center;position:static;background:none}
+.cal th{font-size:10px;padding:2px 0;color:var(--muted);min-width:26px}
+.cal th.we{color:var(--crit)}
+.cal td.who{text-align:left;padding-right:10px;white-space:nowrap;font-weight:600;font-size:13px}
+.cal td.c{width:28px;height:28px;border-radius:4px;background:var(--surface-2);font-weight:600;font-variant-numeric:tabular-nums}
+.cal td.c.on{background:var(--heat);color:var(--bg)}
+.cal td.c.gap{background:var(--warn-soft);box-shadow:inset 0 0 0 1px var(--warn)}
+.cal td.tt{font-weight:700;padding-left:8px;text-align:right;white-space:nowrap}
+.cal tr.sum td.c{background:none;color:var(--muted);font-weight:600}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:5px}
+.notice{border-radius:var(--r);padding:10px 12px;font-size:14px}
+.notice.err{background:var(--crit-soft);border:1px solid var(--crit)}
+.login{max-width:380px;margin:12vh auto;padding:0 16px}
+.login .card{display:flex;flex-direction:column;gap:12px}
+.login label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.login input{font-size:18px;padding:10px;letter-spacing:.2em}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:var(--r);z-index:9}
+.empty{color:var(--muted);padding:8px 0}
+@media print{.bar,.filters,.tabs,button{display:none!important}body{background:#fff;color:#000}.card{break-inside:avoid}.scroll{max-height:none}}
+</style>
+</head>
+<body>
+
+<div class="login" id="v-login" hidden>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><svg viewBox="262 13 350 395" class="logo" aria-hidden="true"><path d="M 405.066406 22.933594 L 405.066406 214.226562 L 356.019531 232.363281 L 356.019531 185.3125 L 275.054688 226.617188 L 275.054688 172.921875 L 356.019531 130.324219 L 356.019531 108.382812 L 275.078125 150.46875 L 274.515625 91.082031 Z M 405.066406 22.933594 "/><path d="M 424.746094 22.933594 L 424.746094 207.191406 L 472.015625 189.828125 L 472.835938 106.140625 L 518.472656 134.140625 L 518.617188 186.378906 L 272.003906 276.894531 L 272.003906 375.667969 L 405.09375 375.625 L 405.066406 335.742188 L 308.726562 335.742188 L 308.664062 309.773438 L 424.460938 266.496094 L 424.460938 375.667969 L 569.382812 375.667969 L 569.382812 336.292969 L 473.429688 336.292969 L 473.429688 249.308594 L 570.128906 213.648438 L 570.128906 111.929688 Z M 424.746094 22.933594 "/><circle cx="525" cy="318" r="83.52" class="lr"/><circle cx="525" cy="318" r="72" class="lf"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(0 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(90 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(180 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(270 525 318)"/><line x1="525" y1="318" x2="525" y2="282.0" class="li" stroke-width="8.64" stroke-linecap="round" transform="rotate(-60 525 318)"/><line x1="525" y1="318" x2="525" y2="269.04" class="li" stroke-width="6.912000000000001" stroke-linecap="round" transform="rotate(60 525 318)"/><circle cx="525" cy="318" r="7.776000000000001" class="lf2"/></svg><div><h1>EffeOre</h1><small class="muted">Dashboard amministrazione</small></div></div>
+  <form class="card" id="f-login">
+    <label>PIN amministrazione<input type="password" id="l-pin" inputmode="numeric" autocomplete="current-password" required></label>
+    <div class="notice err" id="l-err" hidden></div>
+    <button class="primary" id="b-login">Entra</button>
+  </form>
+</div>
+
+<div id="v-dash" hidden>
+  <div class="bar">
+    <div class="bar-in">
+      <div class="brand"><svg viewBox="262 13 350 395" class="logo" aria-hidden="true"><path d="M 405.066406 22.933594 L 405.066406 214.226562 L 356.019531 232.363281 L 356.019531 185.3125 L 275.054688 226.617188 L 275.054688 172.921875 L 356.019531 130.324219 L 356.019531 108.382812 L 275.078125 150.46875 L 274.515625 91.082031 Z M 405.066406 22.933594 "/><path d="M 424.746094 22.933594 L 424.746094 207.191406 L 472.015625 189.828125 L 472.835938 106.140625 L 518.472656 134.140625 L 518.617188 186.378906 L 272.003906 276.894531 L 272.003906 375.667969 L 405.09375 375.625 L 405.066406 335.742188 L 308.726562 335.742188 L 308.664062 309.773438 L 424.460938 266.496094 L 424.460938 375.667969 L 569.382812 375.667969 L 569.382812 336.292969 L 473.429688 336.292969 L 473.429688 249.308594 L 570.128906 213.648438 L 570.128906 111.929688 Z M 424.746094 22.933594 "/><circle cx="525" cy="318" r="83.52" class="lr"/><circle cx="525" cy="318" r="72" class="lf"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(0 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(90 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(180 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(270 525 318)"/><line x1="525" y1="318" x2="525" y2="282.0" class="li" stroke-width="8.64" stroke-linecap="round" transform="rotate(-60 525 318)"/><line x1="525" y1="318" x2="525" y2="269.04" class="li" stroke-width="6.912000000000001" stroke-linecap="round" transform="rotate(60 525 318)"/><circle cx="525" cy="318" r="7.776000000000001" class="lf2"/></svg><div><h1>EffeOre · Dashboard</h1><small>Compensi, PT e pulizie dello staff</small></div></div>
+      <div class="mnav"><button id="m-prev" aria-label="Mese precedente">‹</button><strong id="m-label"></strong><button id="m-next" aria-label="Mese successivo">›</button></div>
+      <span id="m-state"></span>
+      <span class="muted" id="m-upd" style="font-size:13px"></span>
+      <button id="b-refresh">Aggiorna</button>
+      <button id="b-export">Export Excel</button>
+      <button class="ghost" id="b-out">Esci</button>
+    </div>
+    <nav class="tabs"><a href="#s-comp">Compensi</a><a href="#s-pt">PT e coaching</a><a href="#s-pul">Pulizie</a><a href="#s-reg">Registro completo</a></nav>
+  </div>
+  <main>
+    <div class="notice err" id="err" hidden></div>
+    <div class="kpis" id="kpis"></div>
+
+    <section class="card" id="s-comp">
+      <div class="card-h"><h2>Compensi del mese per persona</h2><span class="sub">Attività registrate + fissi mensili + voci extra</span></div>
+      <div class="tbl-wrap"><table id="t-comp"></table></div>
+    </section>
+
+    <section id="s-pt" class="grid2">
+      <div class="card">
+        <div class="card-h"><h2>PT per trainer</h2></div>
+        <div class="tbl-wrap"><table id="t-ptsum"></table></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2>Elenco PT e coaching</h2>
+          <div class="filters"><select id="f-pt-who"></select><select id="f-pt-act"><option value="">PT e coaching</option><option value="PT">Solo PT</option><option value="Coaching">Solo coaching online</option></select><input id="f-pt-q" placeholder="Cerca cliente"></div>
+        </div>
+        <div class="tbl-wrap scroll"><table id="t-pt"></table></div>
+      </div>
+    </section>
+
+    <section class="card" id="s-pul">
+      <div class="card-h"><h2>Pulizie: chi e quando</h2><span class="sub" id="pul-sub"></span></div>
+      <div class="tbl-wrap"><table class="cal" id="t-cal"></table></div>
+      <div class="legend"><span><i style="background:var(--heat)"></i>Ore di pulizia registrate</span><span><i style="background:var(--warn-soft);box-shadow:inset 0 0 0 1px var(--warn)"></i>Giorno passato, lun–sab, senza pulizie</span><span><i style="background:var(--surface-2)"></i>Nessuna registrazione</span></div>
+      <div class="card-h" style="margin-top:18px"><h2>Dettaglio pulizie</h2><div class="filters"><select id="f-pul-who"></select></div></div>
+      <div class="tbl-wrap scroll"><table id="t-pul"></table></div>
+    </section>
+
+    <section class="card" id="s-reg">
+      <div class="card-h"><h2>Registro completo</h2>
+        <div class="filters"><select id="f-reg-who"></select><select id="f-reg-act"></select><select id="f-reg-sede"></select><input id="f-reg-q" placeholder="Cerca (cliente, note…)"></div>
+      </div>
+      <div class="tbl-wrap scroll"><table id="t-reg"></table></div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="config.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const S={pin:"",month:"",d:null};
+const ACT={Classi:"Ore classi",Ore:"Ore",PT:"PT",Coaching:"Coaching online",Schede:"Schede",Pulizia:"Pulizia"};
+const ORDER=["Classi","Ore","PT","Coaching","Schede","Pulizia"];
+const ROLE={Operativo:"Staff operativo","New entry":"New entry",Amministrativo:"Amministrativi e soci"};
+async function run(fn,...args){
+  let r;try{r=await fetch(window.EFFEORE_API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({fn,args}),cache:"no-store"})}
+  catch(e){throw new Error("Connessione non riuscita. Riprova.")}
+  const j=await r.json().catch(()=>{throw new Error("Risposta non valida dal server.")});
+  if(!j.ok)throw new Error(j.error||"Errore.");return j.data;
+}
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const eur=v=>(Number(v)||0).toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2})+" €";
+const qn=v=>(Number(v)||0).toLocaleString("it-IT",{maximumFractionDigits:2});
+const dmy=d=>d.split("-").reverse().join("/");
+const wd=d=>{const [y,m,dd]=d.split("-").map(Number);return new Date(y,m-1,dd).toLocaleDateString("it-IT",{weekday:"short"})};
+const mLabel=m=>{const [y,mm]=m.split("-").map(Number);return new Date(y,mm-1,1).toLocaleDateString("it-IT",{month:"long",year:"numeric"})};
+const mAdd=(m,n)=>{const [y,mm]=m.split("-").map(Number);const d=new Date(y,mm-1+n,1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")};
+const todayIso=()=>{const t=new Date();return t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0")};
+let tT;function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(tT);tT=setTimeout(()=>t.hidden=true,2800)}
+function err(x){const e=$("err");if(!x){e.hidden=true;return}e.textContent=String(x.message||x);e.hidden=false}
+function store(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(_){}}
+function load(k){try{return localStorage.getItem(k)}catch(_){return null}}
+function opts(sel,list,all){const cur=sel.value;sel.innerHTML=`<option value="">${all}</option>`+list.map(v=>`<option value="${esc(v[0])}">${esc(v[1])}</option>`).join("");if(list.some(v=>v[0]===cur))sel.value=cur}
+
+/* ---------- accesso ---------- */
+$("f-login").addEventListener("submit",async e=>{
+  e.preventDefault();const p=$("l-pin").value.trim(),b=$("b-login");b.disabled=true;$("l-err").hidden=true;
+  try{if(await run("api_adminCheck",p)){S.pin=p;store("eo-dash-pin",p);start()}else{$("l-err").textContent="PIN non valido.";$("l-err").hidden=false}}
+  catch(x){$("l-err").textContent=x.message;$("l-err").hidden=false}finally{b.disabled=false}
+});
+$("b-out").onclick=()=>{store("eo-dash-pin",null);S.pin="";$("v-dash").hidden=true;$("v-login").hidden=false;$("l-pin").value=""};
+
+/* ---------- dati ---------- */
+async function loadData(quiet){
+  if(!quiet){$("m-upd").textContent="caricamento…"}
+  $("m-label").textContent=mLabel(S.month);$("m-next").disabled=S.month>=todayIso().slice(0,7);
+  try{const d=await run("api_admin",S.pin,S.month);if(d.month!==S.month)return;S.d=d;err(null);render()}
+  catch(x){if(/PIN/.test(x.message)){$("b-out").click();return}err(x);$("m-upd").textContent=""}
+}
+function start(){$("v-login").hidden=true;$("v-dash").hidden=false;S.month=S.month||todayIso().slice(0,7);loadData()}
+$("m-prev").onclick=()=>{S.month=mAdd(S.month,-1);loadData()};
+$("m-next").onclick=()=>{S.month=mAdd(S.month,1);loadData()};
+$("b-refresh").onclick=()=>loadData();
+$("b-export").onclick=async()=>{const b=$("b-export");b.disabled=true;b.textContent="Preparo…";
+  try{const r=await run("api_export",S.pin,S.month);window.open(r.xlsx,"_blank");toast("Export creato")}catch(x){err(x)}finally{b.disabled=false;b.textContent="Export Excel"}};
+setInterval(()=>{if(!S.pin||document.hidden||$("v-dash").hidden)return;const a=document.activeElement;if(a&&["INPUT","SELECT"].includes(a.tagName))return;loadData(true)},60000);
+
+/* ---------- vista ---------- */
+function render(){
+  const d=S.d,sm=d.summary,E=d.entries;
+  $("m-state").innerHTML=d.closed?'<span class="pill crit">Mese chiuso</span>':'<span class="pill ok">Mese aperto</span>';
+  $("m-upd").textContent="aggiornato alle "+d.updated;
+  const sum=(a,f)=>E.filter(e=>e.act===a).reduce((t,e)=>t+(f?e.amount:e.qty),0);
+  const nPT=sum("PT"),nCo=sum("Coaching"),hPul=sum("Pulizia"),hCl=sum("Classi");
+  $("kpis").innerHTML=[
+    ["tot",eur(sm.tot.total),"Totale da pagare"],["",eur(sm.tot.activity),"Attività registrate"],["",eur(sm.tot.fixed),"Fissi mensili"],["",eur(sm.tot.extra||0),"Extra / rettifiche"],
+    ["",qn(nPT),"PT fatti · "+eur(sum("PT",1))],["",qn(nCo),"Coaching online"],["",qn(hPul)+" h","Pulizie · "+eur(sum("Pulizia",1))],["",qn(hCl)+" h","Ore classi"]
+  ].map(k=>`<div class="kpi ${k[0]}"><b>${k[1]}</b><span>${k[2]}</span></div>`).join("");
+  renderComp();renderPT();renderPul();renderReg();
+}
+function renderComp(){
+  const sm=S.d.summary,max=Math.max(1,...sm.rows.map(p=>p.total));
+  const cols=ORDER.map(a=>[a,a==="Classi"?"Classi h":a==="Ore"?"Ore":a==="Pulizia"?"Pulizia h":ACT[a]]);
+  const c=v=>v?`<td class="n">${qn(v)}</td>`:'<td class="n zero">–</td>';
+  let b="",role="";
+  sm.rows.forEach(p=>{
+    if(p.role!==role){role=p.role;b+=`<tr class="grp"><td colspan="${cols.length+6}">${esc(ROLE[role]||role||"Altro")}</td></tr>`}
+    const det=[...(p.fixedItems||[]).map(f=>f.desc+" "+eur(f.amount)),...(p.extraItems||[]).map(x=>x.desc+" "+eur(x.amount))];
+    b+=`<tr><td><b>${esc(p.name)}</b>${det.length?`<small>${esc(det.join(" · "))}</small>`:""}</td>${cols.map(k=>c(p.q[k[0]])).join("")}<td class="n">${eur(p.activity)}</td><td class="n">${p.fixed?eur(p.fixed):'<span class="zero">–</span>'}</td><td class="n">${p.extra?eur(p.extra):'<span class="zero">–</span>'}</td><td class="n"><b>${eur(p.total)}</b></td><td style="width:120px"><div class="share"><i style="width:${Math.round(p.total/max*100)}px"></i></div></td></tr>`;
+  });
+  const tq=a=>sm.rows.reduce((t,p)=>t+(p.q[a]||0),0);
+  $("t-comp").innerHTML=sm.rows.length?`<thead><tr><th>Persona</th>${cols.map(k=>`<th class="n">${k[1]}</th>`).join("")}<th class="n">Attività</th><th class="n">Fisso</th><th class="n">Extra</th><th class="n">Totale</th><th></th></tr></thead><tbody>${b}<tr class="tot"><td>Totale</td>${cols.map(k=>c(tq(k[0]))).join("")}<td class="n">${eur(sm.tot.activity)}</td><td class="n">${eur(sm.tot.fixed)}</td><td class="n">${eur(sm.tot.extra||0)}</td><td class="n">${eur(sm.tot.total)}</td><td></td></tr></tbody>`
+    :'<tbody><tr><td class="empty">Nessun compenso in questo mese.</td></tr></tbody>';
+}
+function renderPT(){
+  const all=S.d.entries.filter(e=>e.act==="PT"||e.act==="Coaching");
+  const by={};all.forEach(e=>{const k=e.name;by[k]=by[k]||{pt:0,co:0,eur:0,cli:new Set()};if(e.act==="PT")by[k].pt+=e.qty;else by[k].co+=e.qty;by[k].eur+=e.amount;if(e.cliente)by[k].cli.add(e.cliente.toLowerCase())});
+  const names=Object.keys(by).sort((a,b)=>by[b].pt-by[a].pt||a.localeCompare(b,"it"));
+  const tot=names.reduce((t,n)=>({pt:t.pt+by[n].pt,co:t.co+by[n].co,eur:t.eur+by[n].eur}),{pt:0,co:0,eur:0});
+  $("t-ptsum").innerHTML=names.length?`<thead><tr><th>Trainer</th><th class="n">PT</th><th class="n">Coaching</th><th class="n">Clienti</th><th class="n">Compenso</th></tr></thead><tbody>${names.map(n=>`<tr><td><b>${esc(n)}</b></td><td class="n">${qn(by[n].pt)}</td><td class="n">${by[n].co?qn(by[n].co):'<span class="zero">–</span>'}</td><td class="n">${by[n].cli.size}</td><td class="n">${eur(by[n].eur)}</td></tr>`).join("")}<tr class="tot"><td>Totale</td><td class="n">${qn(tot.pt)}</td><td class="n">${qn(tot.co)}</td><td class="n"></td><td class="n">${eur(tot.eur)}</td></tr></tbody>`
+    :'<tbody><tr><td class="empty">Nessun PT o coaching registrato.</td></tr></tbody>';
+  opts($("f-pt-who"),names.map(n=>[n,n]),"Tutti i trainer");
+  const w=$("f-pt-who").value,a=$("f-pt-act").value,q=$("f-pt-q").value.trim().toLowerCase();
+  const list=all.filter(e=>(!w||e.name===w)&&(!a||e.act===a)&&(!q||(e.cliente||"").toLowerCase().includes(q))).sort((x,y)=>(y.date+y.created).localeCompare(x.date+x.created));
+  $("t-pt").innerHTML=list.length?`<thead><tr><th>Data</th><th>Trainer</th><th>Cliente</th><th>Tipo</th><th class="n">N.</th><th>Sede</th><th class="n">€</th></tr></thead><tbody>${list.map(e=>`<tr><td>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></td><td>${esc(e.name)}</td><td><b>${esc(e.cliente||"—")}</b>${e.note?`<small>${esc(e.note)}</small>`:""}</td><td><span class="tag">${e.act==="PT"?"PT":"Coaching"}</span></td><td class="n">${qn(e.qty)}</td><td>${esc(e.sede||"—")}</td><td class="n">${eur(e.amount)}</td></tr>`).join("")}</tbody>`
+    :'<tbody><tr><td class="empty">Nessun risultato.</td></tr></tbody>';
+}
+function renderPul(){
+  const m=S.d.month,[y,mm]=m.split("-").map(Number),days=new Date(y,mm,0).getDate(),today=todayIso();
+  const P=S.d.entries.filter(e=>e.act==="Pulizia");
+  const by={},perDay={};
+  P.forEach(e=>{const d=Number(e.date.slice(8,10));by[e.name]=by[e.name]||{};by[e.name][d]=(by[e.name][d]||0)+e.qty;perDay[d]=(perDay[d]||0)+e.qty});
+  const names=Object.keys(by).sort((a,b)=>a.localeCompare(b,"it"));
+  const iso=d=>m+"-"+String(d).padStart(2,"0");
+  const dow=d=>new Date(y,mm-1,d).getDay();
+  let gaps=0;
+  let h='<thead><tr><th></th>'+Array.from({length:days},(_,i)=>{const d=i+1,w=dow(d);return `<th class="${w===0?"we":""}">${"DLMMGVS"[w]}<br>${d}</th>`}).join("")+'<th>Tot</th></tr></thead><tbody>';
+  names.forEach(n=>{const t=Object.values(by[n]).reduce((a,b)=>a+b,0);h+=`<tr><td class="who">${esc(n)}</td>`+Array.from({length:days},(_,i)=>{const v=by[n][i+1];return v?`<td class="c on" title="${esc(n)} · ${dmy(iso(i+1))} · ${qn(v)} h">${qn(v)}</td>`:'<td class="c"></td>'}).join("")+`<td class="tt">${qn(t)} h</td></tr>`});
+  h+='<tr class="sum"><td class="who muted">Totale giorno</td>'+Array.from({length:days},(_,i)=>{const d=i+1,v=perDay[d];const past=iso(d)<=today,gap=!v&&past&&dow(d)!==0;if(gap)gaps++;return gap?`<td class="c gap" title="${dmy(iso(d))}: nessuna pulizia registrata"></td>`:`<td class="c">${v?qn(v):""}</td>`}).join("")+`<td class="tt">${qn(P.reduce((t,e)=>t+e.qty,0))} h</td></tr></tbody>`;
+  $("t-cal").innerHTML=h;
+  $("pul-sub").textContent=P.length?`${names.length} ${names.length===1?"persona":"persone"} · ${qn(P.reduce((t,e)=>t+e.qty,0))} ore · ${gaps} ${gaps===1?"giorno":"giorni"} lun–sab senza pulizie`:"Nessuna pulizia registrata in questo mese";
+  opts($("f-pul-who"),names.map(n=>[n,n]),"Tutte le persone");
+  const w=$("f-pul-who").value;
+  const list=P.filter(e=>!w||e.name===w).sort((a,b)=>(b.date+b.created).localeCompare(a.date+a.created));
+  $("t-pul").innerHTML=list.length?`<thead><tr><th>Data</th><th>Chi</th><th class="n">Ore</th><th>Sede</th><th>Note</th><th>Registrato il</th><th class="n">€</th></tr></thead><tbody>${list.map(e=>`<tr><td>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></td><td><b>${esc(e.name)}</b></td><td class="n">${qn(e.qty)}</td><td>${esc(e.sede||"—")}</td><td>${esc(e.note||"")}</td><td class="muted">${e.created?new Date(e.created).toLocaleString("it-IT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):""}</td><td class="n">${eur(e.amount)}</td></tr>`).join("")}</tbody>`
+    :'<tbody><tr><td class="empty">Nessuna pulizia.</td></tr></tbody>';
+}
+function renderReg(){
+  const E=S.d.entries;
+  opts($("f-reg-who"),[...new Set(E.map(e=>e.name))].sort((a,b)=>a.localeCompare(b,"it")).map(n=>[n,n]),"Tutte le persone");
+  opts($("f-reg-act"),ORDER.filter(a=>E.some(e=>e.act===a)).map(a=>[a,ACT[a]]),"Tutte le attività");
+  opts($("f-reg-sede"),[...new Set(E.map(e=>e.sede).filter(Boolean))].sort().map(s=>[s,s]),"Tutte le sedi");
+  const w=$("f-reg-who").value,a=$("f-reg-act").value,sd=$("f-reg-sede").value,q=$("f-reg-q").value.trim().toLowerCase();
+  const list=E.filter(e=>(!w||e.name===w)&&(!a||e.act===a)&&(!sd||e.sede===sd)&&(!q||[e.cliente,e.note,e.name].join(" ").toLowerCase().includes(q))).sort((x,y)=>(y.date+y.created).localeCompare(x.date+x.created));
+  const tot=list.reduce((t,e)=>t+e.amount,0);
+  $("t-reg").innerHTML=list.length?`<thead><tr><th>Data</th><th>Persona</th><th>Attività</th><th class="n">Q.tà</th><th>Cliente</th><th>Sede</th><th>Note</th><th class="n">Tariffa</th><th class="n">Importo</th></tr></thead><tbody>${list.map(e=>`<tr><td>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></td><td>${esc(e.name)}</td><td>${esc(ACT[e.act]||e.act)}</td><td class="n">${qn(e.qty)}</td><td>${esc(e.cliente||"")}</td><td>${esc(e.sede||"")}</td><td>${esc(e.note||"")}</td><td class="n">${eur(e.rate)}</td><td class="n">${eur(e.amount)}</td></tr>`).join("")}<tr class="tot"><td colspan="8">${list.length} registrazioni</td><td class="n">${eur(tot)}</td></tr></tbody>`
+    :'<tbody><tr><td class="empty">Nessuna registrazione.</td></tr></tbody>';
+}
+["f-pt-who","f-pt-act"].forEach(id=>$(id).onchange=renderPT);$("f-pt-q").oninput=renderPT;
+$("f-pul-who").onchange=renderPul;
+["f-reg-who","f-reg-act","f-reg-sede"].forEach(id=>$(id).onchange=renderReg);$("f-reg-q").oninput=renderReg;
+
+/* ---------- avvio ---------- */
+S.pin=load("eo-dash-pin")||"";
+if(S.pin)start();else{$("v-login").hidden=false;$("l-pin").focus()}
+</script>
+</body>
+</html>
