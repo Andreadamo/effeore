@@ -63,7 +63,9 @@ td.n,th.n{text-align:right}
 .chart{position:relative}
 .chart svg{width:100%;height:auto;display:block}
 .tip{position:absolute;pointer-events:none;background:var(--fg);color:var(--bg);padding:6px 9px;border-radius:6px;font-size:13px;white-space:nowrap;transform:translate(-50%,-110%)}
-.bar{fill:var(--bar)}.bar:hover,.bar.on{fill:var(--fg)}
+.bar{fill:var(--bar)}
+a{color:inherit;text-decoration:none}
+.empty-ch{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:600}.bar:hover,.bar.on{fill:var(--fg)}
 </style>
 </head>
 <body>
@@ -180,7 +182,7 @@ function renderChart(P){
     const path=hh>0?`M${x},${h-pb}V${top+r}Q${x},${top} ${x+r},${top}H${x+bw-r}Q${x+bw},${top} ${x+bw},${top+r}V${h-pb}Z`:"";
     return `<g data-i="${i}"><rect x="${pl+i*cw}" y="${pt}" width="${cw}" height="${h-pt-pb}" fill="transparent"/>${path?`<path class="bar" d="${path}"/>`:""}
       ${(W.length<=13||i%2===0)?`<text x="${x+bw/2}" y="${h-8}" text-anchor="middle" font-size="11" fill="var(--muted)">${lab}</text>`:""}</g>`}).join("");
-  $("chart").innerHTML=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Incassi merch per settimana"><line x1="${pl}" x2="${w-8}" y1="${h-pb}" y2="${h-pb}" stroke="var(--line)"/>${g}${bars}</svg><div class="tip" hidden></div>`;
+  $("chart").innerHTML=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Incassi merch per settimana"><line x1="${pl}" x2="${w-8}" y1="${h-pb}" y2="${h-pb}" stroke="var(--line)"/>${g}${bars}</svg><div class="tip" hidden></div>${W.some(b=>b.v>0)?"":`<div class="empty-ch">Nessuna vendita nel periodo</div>`}`;
   $("ch-sub").textContent="Settimane da lunedì · totale "+eur(W.reduce((a,b)=>a+b.v,0));
   const svg=$("chart").querySelector("svg"),tip=$("chart").querySelector(".tip");
   svg.querySelectorAll("g[data-i]").forEach(gg=>{
