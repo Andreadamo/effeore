@@ -136,7 +136,7 @@ img{max-width:100%}
       <button id="b-export">Export Excel</button>
       <button class="ghost" id="b-out">Esci</button>
     </div>
-    <nav class="tabs"><a href="#s-comp">Compensi</a><a href="#s-pt">PT e coaching</a><a href="#s-pul">Pulizie</a><a href="#s-reg">Registro completo</a></nav>
+    <nav class="tabs"><a href="#s-comp">Compensi</a><a href="#s-extra">Extra</a><a href="#s-pt">PT e coaching</a><a href="#s-pul">Pulizie</a><a href="#s-reg">Registro completo</a></nav>
   </div>
   <main>
     <div class="notice err" id="err" hidden></div>
@@ -145,6 +145,17 @@ img{max-width:100%}
     <section class="card" id="s-comp">
       <div class="card-h"><h2>Compensi del mese per persona</h2><span class="sub">Attività registrate + fissi mensili + voci extra</span></div>
       <div class="tbl-wrap"><table id="t-comp"></table></div>
+    </section>
+
+    <section class="card" id="s-extra">
+      <div class="card-h"><h2>Voci extra del mese</h2><span class="sub">Rimborsi, rettifiche, bonus. Trattenute con il meno.</span></div>
+      <form id="f-extra" class="filters" autocomplete="off">
+        <select id="e-staff" required aria-label="Persona"></select>
+        <input id="e-amount" inputmode="decimal" placeholder="Importo € (es. 50 o -20)" required aria-label="Importo">
+        <input id="e-desc" maxlength="120" placeholder="Descrizione (es. Rimborso IRPEF)" required aria-label="Descrizione" style="flex:1;min-width:200px">
+        <button class="primary" id="b-extra">Aggiungi voce</button>
+      </form>
+      <div class="tbl-wrap"><table id="t-extra"></table></div>
     </section>
 
     <section id="s-pt" class="grid2">
@@ -239,8 +250,31 @@ function render(){
     ["tot",eur(sm.tot.total),"Totale da pagare"],["",eur(sm.tot.activity),"Attività registrate"],["",eur(sm.tot.fixed),"Fissi mensili"],["",eur(sm.tot.extra||0),"Extra / rettifiche"],
     ["",qn(nPT),"PT fatti · "+eur(sum("PT",1))],["",qn(nCo),"Coaching online"],["",qn(hPul)+" h","Pulizie · "+eur(sum("Pulizia",1))],["",qn(hCl)+" h","Ore classi"]
   ].map(k=>`<div class="kpi ${k[0]}"><b>${k[1]}</b><span>${k[2]}</span></div>`).join("");
-  renderComp();renderPT();renderPul();renderReg();
+  renderComp();renderExtra();renderPT();renderPul();renderReg();
 }
+let armedX=null;
+function renderExtra(){
+  const d=S.d,sel=$("e-staff"),cur=sel.value;
+  sel.innerHTML='<option value="">Persona…</option>'+(d.staff||[]).slice().sort((a,b)=>a.name.localeCompare(b.name,"it")).map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("");
+  sel.value=cur;
+  $("f-extra").hidden=d.closed;
+  const x=d.extras||[];
+  $("t-extra").innerHTML=x.length?`<thead><tr><th>Persona</th><th>Descrizione</th><th class="n">Importo</th><th></th></tr></thead><tbody>${x.map(v=>`<tr><td><b>${esc(v.name)}</b></td><td>${esc(v.desc)}</td><td class="n">${eur(v.amount)}</td><td class="n">${d.closed?"":`<button type="button" class="${armedX===v.id?"primary":"ghost"}" data-xex="${esc(v.id)}">${armedX===v.id?"Conferma":"Elimina"}</button>`}</td></tr>`).join("")}</tbody>`
+    :`<tbody><tr><td class="empty">${d.closed?"Mese chiuso: nessuna voce extra.":"Nessuna voce extra in questo mese."}</td></tr></tbody>`;
+}
+$("f-extra").addEventListener("submit",async e=>{
+  e.preventDefault();const b=$("b-extra");b.disabled=true;
+  const x={month:S.month,staffId:$("e-staff").value,desc:$("e-desc").value.trim(),amount:Number(String($("e-amount").value).replace(/\s/g,"").replace(",","."))};
+  try{const d=await run("api_addExtra",S.pin,x);if(d.month===S.month)S.d=d;$("e-desc").value="";$("e-amount").value="";err(null);render();toast("Voce aggiunta")}
+  catch(z){if(/PIN/.test(z.message)){$("b-out").click();return}err(z)}finally{b.disabled=false}
+});
+$("t-extra").addEventListener("click",async e=>{
+  const b=e.target.closest("[data-xex]");if(!b)return;const id=b.dataset.xex;
+  if(armedX!==id){armedX=id;renderExtra();return}
+  armedX=null;b.disabled=true;
+  try{const d=await run("api_deleteExtra",S.pin,id);if(d.month===S.month)S.d=d;err(null);render();toast("Voce eliminata")}
+  catch(z){if(/PIN/.test(z.message)){$("b-out").click();return}err(z);renderExtra()}
+});
 function renderComp(){
   const sm=S.d.summary,max=Math.max(1,...sm.rows.map(p=>p.total));
   const cols=ORDER.map(a=>[a,a==="Classi"?"Classi h":a==="Ore"?"Ore":a==="Pulizia"?"Pulizia h":ACT[a]]);
