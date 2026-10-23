@@ -112,12 +112,53 @@ button,a,select,label,summary,[role=button]{touch-action:manipulation}
 button:not(:disabled):active{opacity:.75}
 @media (pointer:coarse){input,select,textarea{font-size:16px!important}}
 img{max-width:100%}
+/* ---------- v2: schede, filtri, lezioni individuali ---------- */
+.tabbar{max-width:1400px;margin:0 auto;padding:0 24px;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.tabbar::-webkit-scrollbar{display:none}
+.tabbar button{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;padding:10px 14px;font-weight:600;color:var(--muted);white-space:nowrap}
+.tabbar button.on{color:var(--fg);border-bottom-color:var(--fg)}
+.tabbar button i{font-style:normal;font-size:11px;background:var(--surface-2);border-radius:99px;padding:1px 7px;margin-left:6px;color:var(--muted)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border-radius:99px;padding:5px 12px;font-size:13px}
+.chip.on{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.chip i{font-style:normal;opacity:.65;margin-left:5px;font-size:12px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.seg button{border:0;border-radius:0;background:var(--surface)}
+.seg button.on{background:var(--accent);color:var(--accent-fg)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.toolbar .grow{flex:1;min-width:220px}
+.sumline{color:var(--muted);margin:12px 0 0}
+.sumline b{color:var(--fg)}
+.tsec{margin-top:20px}
+.th{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;border-bottom:2px solid var(--fg);padding-bottom:6px;margin-bottom:10px}
+.th span{color:var(--muted);font-size:13px}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:8px;align-items:start}
+@media (max-width:420px){.cgrid{grid-template-columns:1fr}}
+details.cl{border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+details.cl[open]{border-color:var(--fg)}
+details.cl summary{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;list-style:none}
+details.cl summary::-webkit-details-marker{display:none}
+details.cl summary .nm{flex:1;min-width:0}
+details.cl summary .nm b{display:block;overflow-wrap:anywhere}
+details.cl summary .nm small{color:var(--muted);font-size:12px}
+details.cl summary .q{font-family:var(--display);font-weight:700;font-size:18px;text-align:right;line-height:1}
+details.cl summary .q small{display:block;font-family:var(--body);font-weight:500;color:var(--muted);font-size:11px;margin-top:3px}
+details.cl summary::after{content:"▾";color:var(--muted)}
+details.cl[open] summary::after{content:"▴"}
+.dl>div{display:grid;grid-template-columns:auto 1fr auto;gap:10px;padding:6px 12px;border-top:1px solid var(--line);font-size:13px}
+.dl small{color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.links{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px}
+.links a{color:var(--fg);font-weight:600}
+.box{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface-2)}
+.box textarea{width:100%;min-height:150px;margin:8px 0;padding:8px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);font:inherit;font-size:13px}
+.danger{background:var(--crit);border-color:var(--crit);color:#fff}
+.pane{display:flex;flex-direction:column;gap:16px}
 </style>
 </head>
 <body>
-
 <div class="login" id="v-login" hidden>
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px"><svg viewBox="262 13 350 395" class="logo" aria-hidden="true"><path d="M 405.066406 22.933594 L 405.066406 214.226562 L 356.019531 232.363281 L 356.019531 185.3125 L 275.054688 226.617188 L 275.054688 172.921875 L 356.019531 130.324219 L 356.019531 108.382812 L 275.078125 150.46875 L 274.515625 91.082031 Z M 405.066406 22.933594 "/><path d="M 424.746094 22.933594 L 424.746094 207.191406 L 472.015625 189.828125 L 472.835938 106.140625 L 518.472656 134.140625 L 518.617188 186.378906 L 272.003906 276.894531 L 272.003906 375.667969 L 405.09375 375.625 L 405.066406 335.742188 L 308.726562 335.742188 L 308.664062 309.773438 L 424.460938 266.496094 L 424.460938 375.667969 L 569.382812 375.667969 L 569.382812 336.292969 L 473.429688 336.292969 L 473.429688 249.308594 L 570.128906 213.648438 L 570.128906 111.929688 Z M 424.746094 22.933594 "/><circle cx="525" cy="318" r="83.52" class="lr"/><circle cx="525" cy="318" r="72" class="lf"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(0 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(90 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(180 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(270 525 318)"/><line x1="525" y1="318" x2="525" y2="282.0" class="li" stroke-width="8.64" stroke-linecap="round" transform="rotate(-60 525 318)"/><line x1="525" y1="318" x2="525" y2="269.04" class="li" stroke-width="6.912000000000001" stroke-linecap="round" transform="rotate(60 525 318)"/><circle cx="525" cy="318" r="7.776000000000001" class="lf2"/></svg><div><h1>EffeOre</h1><small class="muted">Dashboard amministrazione</small></div></div>
+  <div class="brand" style="margin-bottom:16px"><svg viewBox="262 13 350 395" class="logo" aria-hidden="true"><path d="M 405.066406 22.933594 L 405.066406 214.226562 L 356.019531 232.363281 L 356.019531 185.3125 L 275.054688 226.617188 L 275.054688 172.921875 L 356.019531 130.324219 L 356.019531 108.382812 L 275.078125 150.46875 L 274.515625 91.082031 Z M 405.066406 22.933594 "/><path d="M 424.746094 22.933594 L 424.746094 207.191406 L 472.015625 189.828125 L 472.835938 106.140625 L 518.472656 134.140625 L 518.617188 186.378906 L 272.003906 276.894531 L 272.003906 375.667969 L 405.09375 375.625 L 405.066406 335.742188 L 308.726562 335.742188 L 308.664062 309.773438 L 424.460938 266.496094 L 424.460938 375.667969 L 569.382812 375.667969 L 569.382812 336.292969 L 473.429688 336.292969 L 473.429688 249.308594 L 570.128906 213.648438 L 570.128906 111.929688 Z M 424.746094 22.933594 "/><circle cx="525" cy="318" r="83.52" class="lr"/><circle cx="525" cy="318" r="72" class="lf"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(0 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(90 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(180 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(270 525 318)"/><line x1="525" y1="318" x2="525" y2="282.0" class="li" stroke-width="8.64" stroke-linecap="round" transform="rotate(-60 525 318)"/><line x1="525" y1="318" x2="525" y2="269.04" class="li" stroke-width="6.912000000000001" stroke-linecap="round" transform="rotate(60 525 318)"/><circle cx="525" cy="318" r="7.776000000000001" class="lf2"/></svg><div><h1>EffeOre · Dashboard</h1><small>Area amministrazione</small></div></div>
   <form class="card" id="f-login">
     <label>PIN amministrazione<input type="password" id="l-pin" inputmode="numeric" autocomplete="current-password" required></label>
     <div class="notice err" id="l-err" hidden></div>
@@ -128,63 +169,96 @@ img{max-width:100%}
 <div id="v-dash" hidden>
   <div class="bar">
     <div class="bar-in">
-      <div class="brand"><svg viewBox="262 13 350 395" class="logo" aria-hidden="true"><path d="M 405.066406 22.933594 L 405.066406 214.226562 L 356.019531 232.363281 L 356.019531 185.3125 L 275.054688 226.617188 L 275.054688 172.921875 L 356.019531 130.324219 L 356.019531 108.382812 L 275.078125 150.46875 L 274.515625 91.082031 Z M 405.066406 22.933594 "/><path d="M 424.746094 22.933594 L 424.746094 207.191406 L 472.015625 189.828125 L 472.835938 106.140625 L 518.472656 134.140625 L 518.617188 186.378906 L 272.003906 276.894531 L 272.003906 375.667969 L 405.09375 375.625 L 405.066406 335.742188 L 308.726562 335.742188 L 308.664062 309.773438 L 424.460938 266.496094 L 424.460938 375.667969 L 569.382812 375.667969 L 569.382812 336.292969 L 473.429688 336.292969 L 473.429688 249.308594 L 570.128906 213.648438 L 570.128906 111.929688 Z M 424.746094 22.933594 "/><circle cx="525" cy="318" r="83.52" class="lr"/><circle cx="525" cy="318" r="72" class="lf"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(0 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(90 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(180 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(270 525 318)"/><line x1="525" y1="318" x2="525" y2="282.0" class="li" stroke-width="8.64" stroke-linecap="round" transform="rotate(-60 525 318)"/><line x1="525" y1="318" x2="525" y2="269.04" class="li" stroke-width="6.912000000000001" stroke-linecap="round" transform="rotate(60 525 318)"/><circle cx="525" cy="318" r="7.776000000000001" class="lf2"/></svg><div><h1>EffeOre · Dashboard</h1><small>Compensi, PT e pulizie dello staff</small></div></div>
+      <div class="brand"><svg viewBox="262 13 350 395" class="logo" aria-hidden="true"><path d="M 405.066406 22.933594 L 405.066406 214.226562 L 356.019531 232.363281 L 356.019531 185.3125 L 275.054688 226.617188 L 275.054688 172.921875 L 356.019531 130.324219 L 356.019531 108.382812 L 275.078125 150.46875 L 274.515625 91.082031 Z M 405.066406 22.933594 "/><path d="M 424.746094 22.933594 L 424.746094 207.191406 L 472.015625 189.828125 L 472.835938 106.140625 L 518.472656 134.140625 L 518.617188 186.378906 L 272.003906 276.894531 L 272.003906 375.667969 L 405.09375 375.625 L 405.066406 335.742188 L 308.726562 335.742188 L 308.664062 309.773438 L 424.460938 266.496094 L 424.460938 375.667969 L 569.382812 375.667969 L 569.382812 336.292969 L 473.429688 336.292969 L 473.429688 249.308594 L 570.128906 213.648438 L 570.128906 111.929688 Z M 424.746094 22.933594 "/><circle cx="525" cy="318" r="83.52" class="lr"/><circle cx="525" cy="318" r="72" class="lf"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(0 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(90 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(180 525 318)"/><line x1="525" y1="261.84" x2="525" y2="273.36" class="li" stroke-width="6.048" stroke-linecap="round" transform="rotate(270 525 318)"/><line x1="525" y1="318" x2="525" y2="282.0" class="li" stroke-width="8.64" stroke-linecap="round" transform="rotate(-60 525 318)"/><line x1="525" y1="318" x2="525" y2="269.04" class="li" stroke-width="6.912000000000001" stroke-linecap="round" transform="rotate(60 525 318)"/><circle cx="525" cy="318" r="7.776000000000001" class="lf2"/></svg><div><h1>EffeOre · Dashboard</h1><small>Compensi, lezioni individuali e pulizie dello staff</small></div></div>
       <div class="mnav"><button id="m-prev" aria-label="Mese precedente">‹</button><strong id="m-label"></strong><button id="m-next" aria-label="Mese successivo">›</button></div>
       <span id="m-state"></span>
       <span class="muted" id="m-upd" style="font-size:13px"></span>
       <button id="b-refresh">Aggiorna</button>
-      <button id="b-export">Export Excel</button>
       <button class="ghost" id="b-out">Esci</button>
     </div>
-    <nav class="tabs"><a href="#s-comp">Compensi</a><a href="#s-extra">Extra</a><a href="#s-pt">PT e coaching</a><a href="#s-pul">Pulizie</a><a href="#s-reg">Registro completo</a></nav>
+    <nav class="tabbar" id="tabbar"></nav>
   </div>
   <main>
     <div class="notice err" id="err" hidden></div>
-    <div class="kpis" id="kpis"></div>
 
-    <section class="card" id="s-comp">
-      <div class="card-h"><h2>Compensi del mese per persona</h2><span class="sub">Attività registrate + fissi mensili + voci extra</span></div>
-      <div class="tbl-wrap"><table id="t-comp"></table></div>
-    </section>
-
-    <section class="card" id="s-extra">
-      <div class="card-h"><h2>Voci extra del mese</h2><span class="sub">Rimborsi, rettifiche, bonus. Trattenute con il meno.</span></div>
-      <form id="f-extra" class="filters" autocomplete="off">
-        <select id="e-staff" required aria-label="Persona"></select>
-        <input id="e-amount" inputmode="decimal" placeholder="Importo € (es. 50 o -20)" required aria-label="Importo">
-        <input id="e-desc" maxlength="120" placeholder="Descrizione (es. Rimborso IRPEF)" required aria-label="Descrizione" style="flex:1;min-width:200px">
-        <button class="primary" id="b-extra">Aggiungi voce</button>
-      </form>
-      <div class="tbl-wrap"><table id="t-extra"></table></div>
-    </section>
-
-    <section id="s-pt" class="grid2">
-      <div class="card">
-        <div class="card-h"><h2>PT per trainer</h2></div>
-        <div class="tbl-wrap"><table id="t-ptsum"></table></div>
-      </div>
-      <div class="card">
-        <div class="card-h"><h2>Elenco PT e coaching</h2>
-          <div class="filters"><select id="f-pt-who"></select><select id="f-pt-act"><option value="">PT e coaching</option><option value="PT">Solo PT</option><option value="Coaching">Solo coaching online</option></select><input id="f-pt-q" placeholder="Cerca cliente"></div>
+    <!-- COMPENSI -->
+    <div class="pane" id="p-home">
+      <div class="kpis" id="kpis"></div>
+      <section class="card">
+        <div class="card-h"><h2>Azioni del mese</h2><span class="sub">Stesse funzioni di EffeOre → Area amministrazione</span></div>
+        <div class="actions">
+          <button class="primary" id="b-modulo">Modulo compensi per Studio Mattonai</button>
+          <button id="b-export">Export dettagliato (Excel)</button>
+          <button id="b-close"></button>
         </div>
-        <div class="tbl-wrap scroll"><table id="t-pt"></table></div>
-      </div>
-    </section>
+        <div id="x-modulo" hidden class="box"></div>
+        <div id="x-export" hidden class="box">
+          <div class="links" id="x-links"></div>
+          <label class="muted" style="font-size:13px">Messaggio da inviare<textarea id="x-text" readonly></textarea></label>
+          <button id="b-copy">Copia messaggio</button>
+        </div>
+      </section>
+      <section class="card">
+        <div class="card-h"><h2>Compensi del mese per persona</h2><span class="sub">Attività registrate + fissi mensili + voci extra</span></div>
+        <div class="tbl-wrap"><table id="t-comp"></table></div>
+      </section>
+    </div>
 
-    <section class="card" id="s-pul">
-      <div class="card-h"><h2>Pulizie: chi e quando</h2><span class="sub" id="pul-sub"></span></div>
-      <div class="tbl-wrap"><table class="cal" id="t-cal"></table></div>
-      <div class="legend"><span><i style="background:var(--heat)"></i>Ore di pulizia registrate</span><span><i style="background:var(--warn-soft);box-shadow:inset 0 0 0 1px var(--warn)"></i>Giorno passato, lun–sab, senza pulizie</span><span><i style="background:var(--surface-2)"></i>Nessuna registrazione</span></div>
-      <div class="card-h" style="margin-top:18px"><h2>Dettaglio pulizie</h2><div class="filters"><select id="f-pul-who"></select></div></div>
-      <div class="tbl-wrap scroll"><table id="t-pul"></table></div>
-    </section>
+    <!-- EXTRA -->
+    <div class="pane" id="p-extra" hidden>
+      <section class="card">
+        <div class="card-h"><h2>Voci extra del mese</h2><span class="sub">Rimborsi, rettifiche, bonus. Trattenute con il meno.</span></div>
+        <form id="f-extra" class="toolbar" autocomplete="off">
+          <select id="e-staff" required aria-label="Persona"></select>
+          <input id="e-amount" inputmode="decimal" placeholder="Importo € (es. 50 o -20)" required aria-label="Importo">
+          <input id="e-desc" class="grow" maxlength="120" placeholder="Descrizione (es. Rimborso IRPEF)" required aria-label="Descrizione">
+          <button class="primary" id="b-extra">Aggiungi voce</button>
+        </form>
+        <div class="tbl-wrap"><table id="t-extra"></table></div>
+        <div class="muted" id="x-fixed" style="font-size:13px;margin-top:10px"></div>
+      </section>
+    </div>
 
-    <section class="card" id="s-reg">
-      <div class="card-h"><h2>Registro completo</h2>
-        <div class="filters"><select id="f-reg-who"></select><select id="f-reg-act"></select><select id="f-reg-sede"></select><input id="f-reg-q" placeholder="Cerca (cliente, note…)"></div>
-      </div>
-      <div class="tbl-wrap scroll"><table id="t-reg"></table></div>
-    </section>
+    <!-- LEZIONI INDIVIDUALI -->
+    <div class="pane" id="p-pt" hidden>
+      <section class="card">
+        <div class="card-h"><h2>Lezioni individuali</h2><span class="sub">PT e coaching online per trainer e cliente</span></div>
+        <div class="toolbar">
+          <input id="pt-q" class="grow" type="search" placeholder="Cerca cliente per nome e cognome…" autocomplete="off" aria-label="Cerca cliente">
+          <select id="pt-act" aria-label="Tipo"><option value="">PT e coaching</option><option value="PT">Solo PT</option><option value="Coaching">Solo coaching online</option></select>
+          <div class="seg" id="pt-view"><button type="button" data-v="cli" class="on">Per cliente</button><button type="button" data-v="list">Cronologico</button></div>
+        </div>
+        <div class="chips" id="pt-chips"></div>
+        <div class="sumline" id="pt-sum"></div>
+        <div id="pt-body"></div>
+      </section>
+    </div>
+
+    <!-- PULIZIE -->
+    <div class="pane" id="p-pul" hidden>
+      <section class="card">
+        <div class="card-h"><h2>Pulizie: chi e quando</h2><span class="sub" id="pul-sub"></span></div>
+        <div class="tbl-wrap"><table class="cal" id="t-cal"></table></div>
+        <div class="legend"><span><i style="background:var(--heat)"></i>ore registrate</span><span><i style="background:var(--warn-soft);box-shadow:inset 0 0 0 1px var(--warn)"></i>giorno lun–sab senza pulizie</span></div>
+      </section>
+      <section class="card">
+        <div class="card-h"><h2>Dettaglio pulizie</h2></div>
+        <div class="chips" id="pul-chips" style="margin-bottom:10px"></div>
+        <div class="tbl-wrap scroll"><table id="t-pul"></table></div>
+      </section>
+    </div>
+
+    <!-- REGISTRO -->
+    <div class="pane" id="p-reg" hidden>
+      <section class="card">
+        <div class="card-h"><h2>Registro completo</h2><span class="sub" id="reg-sub"></span></div>
+        <div class="toolbar">
+          <select id="f-reg-who"></select><select id="f-reg-act"></select><select id="f-reg-sede"></select>
+          <input id="f-reg-q" class="grow" type="search" placeholder="Cerca (cliente, note, persona…)" autocomplete="off">
+        </div>
+        <div class="tbl-wrap scroll"><table id="t-reg"></table></div>
+      </section>
+    </div>
   </main>
 </div>
 <div class="toast" id="toast" hidden></div>
@@ -192,10 +266,11 @@ img{max-width:100%}
 <script src="config.js"></script>
 <script>
 const $=id=>document.getElementById(id);
-const S={pin:"",month:"",d:null};
+const S={pin:"",month:"",d:null,tab:"home",who:{pt:"",pul:""},ptView:"cli",armed:null,open:new Set()};
 const ACT={Classi:"Ore classi",Ore:"Ore",PT:"PT",Coaching:"Coaching online",Schede:"Schede",Pulizia:"Pulizia"};
 const ORDER=["Classi","Ore","PT","Coaching","Schede","Pulizia"];
 const ROLE={Operativo:"Staff operativo","New entry":"New entry",Amministrativo:"Amministrativi e soci"};
+const TABS=[["home","Compensi"],["extra","Extra"],["pt","Lezioni individuali"],["pul","Pulizie"],["reg","Registro"]];
 async function run(fn,...args){
   let r;try{r=await fetch(window.EFFEORE_API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({fn,args}),cache:"no-store"})}
   catch(e){throw new Error("Connessione non riuscita. Riprova.")}
@@ -205,6 +280,8 @@ async function run(fn,...args){
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const eur=v=>(Number(v)||0).toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2})+" €";
 const qn=v=>(Number(v)||0).toLocaleString("it-IT",{maximumFractionDigits:2});
+const norm=s=>String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().trim();
+const it=(a,b)=>String(a).localeCompare(String(b),"it");
 const dmy=d=>d.split("-").reverse().join("/");
 const wd=d=>{const [y,m,dd]=d.split("-").map(Number);return new Date(y,m-1,dd).toLocaleDateString("it-IT",{weekday:"short"})};
 const mLabel=m=>{const [y,mm]=m.split("-").map(Number);return new Date(y,mm-1,1).toLocaleDateString("it-IT",{month:"long",year:"numeric"})};
@@ -214,7 +291,13 @@ let tT;function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clear
 function err(x){const e=$("err");if(!x){e.hidden=true;return}e.textContent=String(x.message||x);e.hidden=false}
 function store(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(_){}}
 function load(k){try{return localStorage.getItem(k)}catch(_){return null}}
+function fail(x){if(/PIN/.test(String(x&&x.message))){$("b-out").click();return}err(x)}
 function opts(sel,list,all){const cur=sel.value;sel.innerHTML=`<option value="">${all}</option>`+list.map(v=>`<option value="${esc(v[0])}">${esc(v[1])}</option>`).join("");if(list.some(v=>v[0]===cur))sel.value=cur}
+function chips(el,list,cur,pick){
+  el.innerHTML=list.map(([v,l,n])=>`<button type="button" class="chip${v===cur?" on":""}" data-v="${esc(v)}">${esc(l)}${n!=null?`<i>${n}</i>`:""}</button>`).join("");
+  el.onclick=e=>{const b=e.target.closest(".chip");if(b)pick(b.dataset.v)};
+}
+const stamp=e=>e.created?new Date(e.created).toLocaleString("it-IT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"";
 
 /* ---------- accesso ---------- */
 $("f-login").addEventListener("submit",async e=>{
@@ -226,55 +309,44 @@ $("b-out").onclick=()=>{store("eo-dash-pin",null);S.pin="";$("v-dash").hidden=tr
 
 /* ---------- dati ---------- */
 async function loadData(quiet){
-  if(!quiet){$("m-upd").textContent="caricamento…"}
+  if(!quiet)$("m-upd").textContent="caricamento…";
   $("m-label").textContent=mLabel(S.month);$("m-next").disabled=S.month>=todayIso().slice(0,7);
   try{const d=await run("api_admin",S.pin,S.month);if(d.month!==S.month)return;S.d=d;err(null);render()}
   catch(x){if(/PIN/.test(x.message)){$("b-out").click();return}err(x);$("m-upd").textContent=""}
 }
-function start(){$("v-login").hidden=true;$("v-dash").hidden=false;S.month=S.month||todayIso().slice(0,7);loadData()}
-$("m-prev").onclick=()=>{S.month=mAdd(S.month,-1);loadData()};
-$("m-next").onclick=()=>{S.month=mAdd(S.month,1);loadData()};
+function start(){
+  $("v-login").hidden=true;$("v-dash").hidden=false;S.month=S.month||todayIso().slice(0,7);
+  const h=location.hash.slice(1);setTab(TABS.some(t=>t[0]===h)?h:"home");loadData();
+}
+function go(n){S.month=mAdd(S.month,n);S.armed=null;$("x-modulo").hidden=true;$("x-export").hidden=true;loadData()}
+$("m-prev").onclick=()=>go(-1);$("m-next").onclick=()=>go(1);
 $("b-refresh").onclick=()=>loadData();
-$("b-export").onclick=async()=>{const b=$("b-export");b.disabled=true;b.textContent="Preparo…";
-  try{const r=await run("api_export",S.pin,S.month);window.open(r.xlsx,"_blank");toast("Export creato")}catch(x){err(x)}finally{b.disabled=false;b.textContent="Export Excel"}};
-setInterval(()=>{if(!S.pin||document.hidden||$("v-dash").hidden)return;const a=document.activeElement;if(a&&["INPUT","SELECT"].includes(a.tagName))return;loadData(true)},60000);
+setInterval(()=>{if(!S.pin||document.hidden||$("v-dash").hidden||S.armed)return;const a=document.activeElement;if(a&&["INPUT","SELECT","TEXTAREA"].includes(a.tagName))return;loadData(true)},60000);
+
+/* ---------- schede ---------- */
+function setTab(t){
+  S.tab=t;S.armed=null;try{history.replaceState(null,"","#"+t)}catch(_){}
+  TABS.forEach(([k])=>$("p-"+k).hidden=k!==t);renderTabs();window.scrollTo(0,0);
+}
+function renderTabs(){
+  const d=S.d,n={extra:d?(d.extras||[]).length:0,pt:d?d.entries.filter(e=>e.act==="PT"||e.act==="Coaching").length:0,pul:d?d.entries.filter(e=>e.act==="Pulizia").length:0,reg:d?d.entries.length:0};
+  $("tabbar").innerHTML=TABS.map(([k,l])=>`<button type="button" data-t="${k}" class="${k===S.tab?"on":""}">${l}${n[k]!=null&&k!=="home"?`<i>${n[k]}</i>`:""}</button>`).join("");
+}
+$("tabbar").onclick=e=>{const b=e.target.closest("[data-t]");if(b)setTab(b.dataset.t)};
 
 /* ---------- vista ---------- */
 function render(){
   const d=S.d,sm=d.summary,E=d.entries;
   $("m-state").innerHTML=d.closed?'<span class="pill crit">Mese chiuso</span>':'<span class="pill ok">Mese aperto</span>';
   $("m-upd").textContent="aggiornato alle "+d.updated;
+  $("b-close").textContent=d.closed?"Riapri mese":"Chiudi mese";$("b-close").className=d.closed?"":"danger";
   const sum=(a,f)=>E.filter(e=>e.act===a).reduce((t,e)=>t+(f?e.amount:e.qty),0);
-  const nPT=sum("PT"),nCo=sum("Coaching"),hPul=sum("Pulizia"),hCl=sum("Classi");
   $("kpis").innerHTML=[
     ["tot",eur(sm.tot.total),"Totale da pagare"],["",eur(sm.tot.activity),"Attività registrate"],["",eur(sm.tot.fixed),"Fissi mensili"],["",eur(sm.tot.extra||0),"Extra / rettifiche"],
-    ["",qn(nPT),"PT fatti · "+eur(sum("PT",1))],["",qn(nCo),"Coaching online"],["",qn(hPul)+" h","Pulizie · "+eur(sum("Pulizia",1))],["",qn(hCl)+" h","Ore classi"]
+    ["",qn(sum("PT")),"PT fatti · "+eur(sum("PT",1))],["",qn(sum("Coaching")),"Coaching online"],["",qn(sum("Pulizia"))+" h","Pulizie · "+eur(sum("Pulizia",1))],["",qn(sum("Classi"))+" h","Ore classi"]
   ].map(k=>`<div class="kpi ${k[0]}"><b>${k[1]}</b><span>${k[2]}</span></div>`).join("");
-  renderComp();renderExtra();renderPT();renderPul();renderReg();
+  renderComp();renderExtra();renderPT();renderPul();renderReg();renderTabs();
 }
-let armedX=null;
-function renderExtra(){
-  const d=S.d,sel=$("e-staff"),cur=sel.value;
-  sel.innerHTML='<option value="">Persona…</option>'+(d.staff||[]).slice().sort((a,b)=>a.name.localeCompare(b.name,"it")).map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("");
-  sel.value=cur;
-  $("f-extra").hidden=d.closed;
-  const x=d.extras||[];
-  $("t-extra").innerHTML=x.length?`<thead><tr><th>Persona</th><th>Descrizione</th><th class="n">Importo</th><th></th></tr></thead><tbody>${x.map(v=>`<tr><td><b>${esc(v.name)}</b></td><td>${esc(v.desc)}</td><td class="n">${eur(v.amount)}</td><td class="n">${d.closed?"":`<button type="button" class="${armedX===v.id?"primary":"ghost"}" data-xex="${esc(v.id)}">${armedX===v.id?"Conferma":"Elimina"}</button>`}</td></tr>`).join("")}</tbody>`
-    :`<tbody><tr><td class="empty">${d.closed?"Mese chiuso: nessuna voce extra.":"Nessuna voce extra in questo mese."}</td></tr></tbody>`;
-}
-$("f-extra").addEventListener("submit",async e=>{
-  e.preventDefault();const b=$("b-extra");b.disabled=true;
-  const x={month:S.month,staffId:$("e-staff").value,desc:$("e-desc").value.trim(),amount:Number(String($("e-amount").value).replace(/\s/g,"").replace(",","."))};
-  try{const d=await run("api_addExtra",S.pin,x);if(d.month===S.month)S.d=d;$("e-desc").value="";$("e-amount").value="";err(null);render();toast("Voce aggiunta")}
-  catch(z){if(/PIN/.test(z.message)){$("b-out").click();return}err(z)}finally{b.disabled=false}
-});
-$("t-extra").addEventListener("click",async e=>{
-  const b=e.target.closest("[data-xex]");if(!b)return;const id=b.dataset.xex;
-  if(armedX!==id){armedX=id;renderExtra();return}
-  armedX=null;b.disabled=true;
-  try{const d=await run("api_deleteExtra",S.pin,id);if(d.month===S.month)S.d=d;err(null);render();toast("Voce eliminata")}
-  catch(z){if(/PIN/.test(z.message)){$("b-out").click();return}err(z);renderExtra()}
-});
 function renderComp(){
   const sm=S.d.summary,max=Math.max(1,...sm.rows.map(p=>p.total));
   const cols=ORDER.map(a=>[a,a==="Classi"?"Classi h":a==="Ore"?"Ore":a==="Pulizia"?"Pulizia h":ACT[a]]);
@@ -289,25 +361,66 @@ function renderComp(){
   $("t-comp").innerHTML=sm.rows.length?`<thead><tr><th>Persona</th>${cols.map(k=>`<th class="n">${k[1]}</th>`).join("")}<th class="n">Attività</th><th class="n">Fisso</th><th class="n">Extra</th><th class="n">Totale</th><th></th></tr></thead><tbody>${b}<tr class="tot"><td>Totale</td>${cols.map(k=>c(tq(k[0]))).join("")}<td class="n">${eur(sm.tot.activity)}</td><td class="n">${eur(sm.tot.fixed)}</td><td class="n">${eur(sm.tot.extra||0)}</td><td class="n">${eur(sm.tot.total)}</td><td></td></tr></tbody>`
     :'<tbody><tr><td class="empty">Nessun compenso in questo mese.</td></tr></tbody>';
 }
+
+/* extra */
+function renderExtra(){
+  const d=S.d,sel=$("e-staff"),cur=sel.value;
+  sel.innerHTML='<option value="">Persona…</option>'+(d.staff||[]).slice().sort((a,b)=>it(a.name,b.name)).map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("");
+  sel.value=cur;$("f-extra").hidden=d.closed;
+  const x=d.extras||[];
+  $("t-extra").innerHTML=x.length?`<thead><tr><th>Persona</th><th>Descrizione</th><th class="n">Importo</th><th></th></tr></thead><tbody>${x.map(v=>`<tr><td><b>${esc(v.name)}</b></td><td>${esc(v.desc)}</td><td class="n">${eur(v.amount)}</td><td class="n">${d.closed?"":`<button type="button" class="${S.armed===v.id?"danger":"ghost"}" data-xex="${esc(v.id)}">${S.armed===v.id?"Conferma":"Elimina"}</button>`}</td></tr>`).join("")}</tbody>`
+    :`<tbody><tr><td class="empty">${d.closed?"Mese chiuso: nessuna voce extra.":"Nessuna voce extra in questo mese."}</td></tr></tbody>`;
+  const fx=(d.fixed||[]).filter(f=>f.active);
+  $("x-fixed").innerHTML=fx.length?"Fissi mensili applicati ogni mese: "+fx.map(f=>`${esc(f.name)} ${eur(f.amount)} (${esc(f.desc)})`).join(" · ")+". Si modificano nella tab “Voci fisse” dell'archivio.":"";
+}
+$("f-extra").addEventListener("submit",async e=>{
+  e.preventDefault();const b=$("b-extra");b.disabled=true;
+  const x={month:S.month,staffId:$("e-staff").value,desc:$("e-desc").value.trim(),amount:Number(String($("e-amount").value).replace(/\s/g,"").replace(",","."))};
+  try{const d=await run("api_addExtra",S.pin,x);if(d.month===S.month)S.d=d;$("e-desc").value="";$("e-amount").value="";err(null);render();toast("Voce aggiunta")}
+  catch(z){fail(z)}finally{b.disabled=false}
+});
+
+/* lezioni individuali */
 function renderPT(){
   const all=S.d.entries.filter(e=>e.act==="PT"||e.act==="Coaching");
-  const by={};all.forEach(e=>{const k=e.name;by[k]=by[k]||{pt:0,co:0,eur:0,cli:new Set()};if(e.act==="PT")by[k].pt+=e.qty;else by[k].co+=e.qty;by[k].eur+=e.amount;if(e.cliente)by[k].cli.add(e.cliente.toLowerCase())});
-  const names=Object.keys(by).sort((a,b)=>by[b].pt-by[a].pt||a.localeCompare(b,"it"));
-  const tot=names.reduce((t,n)=>({pt:t.pt+by[n].pt,co:t.co+by[n].co,eur:t.eur+by[n].eur}),{pt:0,co:0,eur:0});
-  $("t-ptsum").innerHTML=names.length?`<thead><tr><th>Trainer</th><th class="n">PT</th><th class="n">Coaching</th><th class="n">Clienti</th><th class="n">Compenso</th></tr></thead><tbody>${names.map(n=>`<tr><td><b>${esc(n)}</b></td><td class="n">${qn(by[n].pt)}</td><td class="n">${by[n].co?qn(by[n].co):'<span class="zero">–</span>'}</td><td class="n">${by[n].cli.size}</td><td class="n">${eur(by[n].eur)}</td></tr>`).join("")}<tr class="tot"><td>Totale</td><td class="n">${qn(tot.pt)}</td><td class="n">${qn(tot.co)}</td><td class="n"></td><td class="n">${eur(tot.eur)}</td></tr></tbody>`
-    :'<tbody><tr><td class="empty">Nessun PT o coaching registrato.</td></tr></tbody>';
-  opts($("f-pt-who"),names.map(n=>[n,n]),"Tutti i trainer");
-  const w=$("f-pt-who").value,a=$("f-pt-act").value,q=$("f-pt-q").value.trim().toLowerCase();
-  const list=all.filter(e=>(!w||e.name===w)&&(!a||e.act===a)&&(!q||(e.cliente||"").toLowerCase().includes(q))).sort((x,y)=>(y.date+y.created).localeCompare(x.date+x.created));
-  $("t-pt").innerHTML=list.length?`<thead><tr><th>Data</th><th>Trainer</th><th>Cliente</th><th>Tipo</th><th class="n">N.</th><th>Sede</th><th class="n">€</th></tr></thead><tbody>${list.map(e=>`<tr><td>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></td><td>${esc(e.name)}</td><td><b>${esc(e.cliente||"—")}</b>${e.note?`<small>${esc(e.note)}</small>`:""}</td><td><span class="tag">${e.act==="PT"?"PT":"Coaching"}</span></td><td class="n">${qn(e.qty)}</td><td>${esc(e.sede||"—")}</td><td class="n">${eur(e.amount)}</td></tr>`).join("")}</tbody>`
-    :'<tbody><tr><td class="empty">Nessun risultato.</td></tr></tbody>';
+  const act=$("pt-act").value,q=norm($("pt-q").value).split(/\s+/).filter(Boolean);
+  const cnt={};all.forEach(e=>cnt[e.name]=(cnt[e.name]||0)+1);
+  const names=Object.keys(cnt).sort(it);
+  if(S.who.pt&&!names.includes(S.who.pt))S.who.pt="";
+  chips($("pt-chips"),[["","Tutti i trainer",all.length],...names.map(n=>[n,n,cnt[n]])],S.who.pt,v=>{S.who.pt=v;renderPT()});
+  const list=all.filter(e=>(!S.who.pt||e.name===S.who.pt)&&(!act||e.act===act)&&(!q.length||q.every(t=>norm(e.cliente).includes(t))));
+  const nq=list.reduce((t,e)=>t+e.qty,0),ncl=new Set(list.map(e=>norm(e.cliente)||"-")).size,te=list.reduce((t,e)=>t+e.amount,0);
+  $("pt-sum").innerHTML=list.length?`<b>${qn(nq)}</b> lezioni · <b>${ncl}</b> ${ncl===1?"cliente":"clienti"} · <b>${eur(te)}</b>${q.length?` · risultati per “${esc($("pt-q").value.trim())}”`:""}`:"";
+  [...$("pt-view").children].forEach(b=>b.classList.toggle("on",b.dataset.v===S.ptView));
+  if(!list.length){$("pt-body").innerHTML=`<div class="empty">${q.length?"Nessun cliente trovato in questo mese.":"Nessun PT o coaching registrato in questo mese."}</div>`;return}
+  if(S.ptView==="list"){
+    const L=list.slice().sort((x,y)=>(y.date+y.created).localeCompare(x.date+x.created));
+    $("pt-body").innerHTML=`<div class="tbl-wrap scroll"><table><thead><tr><th>Data</th><th>Trainer</th><th>Cliente</th><th>Tipo</th><th class="n">N.</th><th>Sede</th><th class="n">€</th></tr></thead><tbody>${L.map(e=>`<tr><td>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></td><td>${esc(e.name)}</td><td><b>${esc(e.cliente||"—")}</b>${e.note?`<small>${esc(e.note)}</small>`:""}</td><td><span class="tag">${e.act==="PT"?"PT":"Coaching"}</span></td><td class="n">${qn(e.qty)}</td><td>${esc(e.sede||"—")}</td><td class="n">${eur(e.amount)}</td></tr>`).join("")}</tbody></table></div>`;
+    return;
+  }
+  const byT={};
+  list.forEach(e=>{const t=byT[e.name]=byT[e.name]||{};const k=norm(e.cliente)||"-";(t[k]=t[k]||{name:e.cliente||"Cliente non indicato",rows:[]}).rows.push(e)});
+  $("pt-body").innerHTML=Object.keys(byT).sort(it).map(tn=>{
+    const cls=Object.values(byT[tn]).sort((a,b)=>it(a.name,b.name));
+    const all2=cls.flatMap(c=>c.rows);
+    return `<section class="tsec"><div class="th"><h3>${esc(tn)}</h3><span>${qn(all2.reduce((t,e)=>t+e.qty,0))} lezioni · ${cls.length} ${cls.length===1?"cliente":"clienti"} · ${eur(all2.reduce((t,e)=>t+e.amount,0))}</span></div><div class="cgrid">${cls.map(c=>{
+      const rows=c.rows.slice().sort((x,y)=>(y.date+y.created).localeCompare(x.date+x.created));
+      const key=tn+"|"+norm(c.name),n=rows.reduce((t,e)=>t+e.qty,0);
+      const kinds=[...new Set(rows.map(e=>e.act==="PT"?"PT":"Coaching"))].join(" + ");
+      return `<details class="cl" data-k="${esc(key)}"${S.open.has(key)||(q.length&&cls.length<=3)?" open":""}><summary><span class="nm"><b>${esc(c.name)}</b><small>${kinds} · ultima ${dmy(rows[0].date)}</small></span><span class="q">${qn(n)}<small>${eur(rows.reduce((t,e)=>t+e.amount,0))}</small></span></summary><div class="dl">${rows.map(e=>`<div><span>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></span><span>${e.act==="PT"?"PT":"Coaching"} ${qn(e.qty)}${e.sede?` · <small>${esc(e.sede)}</small>`:""}${e.note?` <small>· ${esc(e.note)}</small>`:""}</span><span>${eur(e.amount)}</span></div>`).join("")}</div></details>`}).join("")}</div></section>`;
+  }).join("");
 }
+$("pt-body").addEventListener("toggle",e=>{const k=e.target.dataset&&e.target.dataset.k;if(!k)return;e.target.open?S.open.add(k):S.open.delete(k)},true);
+$("pt-q").oninput=renderPT;$("pt-act").onchange=renderPT;
+$("pt-view").onclick=e=>{const b=e.target.closest("[data-v]");if(b){S.ptView=b.dataset.v;renderPT()}};
+
+/* pulizie */
 function renderPul(){
   const m=S.d.month,[y,mm]=m.split("-").map(Number),days=new Date(y,mm,0).getDate(),today=todayIso();
   const P=S.d.entries.filter(e=>e.act==="Pulizia");
   const by={},perDay={};
   P.forEach(e=>{const d=Number(e.date.slice(8,10));by[e.name]=by[e.name]||{};by[e.name][d]=(by[e.name][d]||0)+e.qty;perDay[d]=(perDay[d]||0)+e.qty});
-  const names=Object.keys(by).sort((a,b)=>a.localeCompare(b,"it"));
+  const names=Object.keys(by).sort(it);
   const iso=d=>m+"-"+String(d).padStart(2,"0");
   const dow=d=>new Date(y,mm-1,d).getDay();
   let gaps=0;
@@ -316,26 +429,67 @@ function renderPul(){
   h+='<tr class="sum"><td class="who muted">Totale giorno</td>'+Array.from({length:days},(_,i)=>{const d=i+1,v=perDay[d];const past=iso(d)<=today,gap=!v&&past&&dow(d)!==0;if(gap)gaps++;return gap?`<td class="c gap" title="${dmy(iso(d))}: nessuna pulizia registrata"></td>`:`<td class="c">${v?qn(v):""}</td>`}).join("")+`<td class="tt">${qn(P.reduce((t,e)=>t+e.qty,0))} h</td></tr></tbody>`;
   $("t-cal").innerHTML=h;
   $("pul-sub").textContent=P.length?`${names.length} ${names.length===1?"persona":"persone"} · ${qn(P.reduce((t,e)=>t+e.qty,0))} ore · ${gaps} ${gaps===1?"giorno":"giorni"} lun–sab senza pulizie`:"Nessuna pulizia registrata in questo mese";
-  opts($("f-pul-who"),names.map(n=>[n,n]),"Tutte le persone");
-  const w=$("f-pul-who").value;
-  const list=P.filter(e=>!w||e.name===w).sort((a,b)=>(b.date+b.created).localeCompare(a.date+a.created));
-  $("t-pul").innerHTML=list.length?`<thead><tr><th>Data</th><th>Chi</th><th class="n">Ore</th><th>Sede</th><th>Note</th><th>Registrato il</th><th class="n">€</th></tr></thead><tbody>${list.map(e=>`<tr><td>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></td><td><b>${esc(e.name)}</b></td><td class="n">${qn(e.qty)}</td><td>${esc(e.sede||"—")}</td><td>${esc(e.note||"")}</td><td class="muted">${e.created?new Date(e.created).toLocaleString("it-IT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):""}</td><td class="n">${eur(e.amount)}</td></tr>`).join("")}</tbody>`
+  if(S.who.pul&&!names.includes(S.who.pul))S.who.pul="";
+  chips($("pul-chips"),[["","Tutte le persone",P.length],...names.map(n=>[n,n,P.filter(e=>e.name===n).length])],S.who.pul,v=>{S.who.pul=v;renderPul()});
+  const list=P.filter(e=>!S.who.pul||e.name===S.who.pul).sort((a,b)=>(b.date+b.created).localeCompare(a.date+a.created));
+  $("t-pul").innerHTML=list.length?`<thead><tr><th>Data</th><th>Chi</th><th class="n">Ore</th><th>Sede</th><th>Note</th><th>Registrato il</th><th class="n">€</th></tr></thead><tbody>${list.map(e=>`<tr><td>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></td><td><b>${esc(e.name)}</b></td><td class="n">${qn(e.qty)}</td><td>${esc(e.sede||"—")}</td><td>${esc(e.note||"")}</td><td class="muted">${stamp(e)}</td><td class="n">${eur(e.amount)}</td></tr>`).join("")}</tbody>`
     :'<tbody><tr><td class="empty">Nessuna pulizia.</td></tr></tbody>';
 }
+
+/* registro (con eliminazione, come in EffeOre) */
 function renderReg(){
-  const E=S.d.entries;
-  opts($("f-reg-who"),[...new Set(E.map(e=>e.name))].sort((a,b)=>a.localeCompare(b,"it")).map(n=>[n,n]),"Tutte le persone");
+  const E=S.d.entries,closed=S.d.closed;
+  opts($("f-reg-who"),[...new Set(E.map(e=>e.name))].sort(it).map(n=>[n,n]),"Tutte le persone");
   opts($("f-reg-act"),ORDER.filter(a=>E.some(e=>e.act===a)).map(a=>[a,ACT[a]]),"Tutte le attività");
   opts($("f-reg-sede"),[...new Set(E.map(e=>e.sede).filter(Boolean))].sort().map(s=>[s,s]),"Tutte le sedi");
-  const w=$("f-reg-who").value,a=$("f-reg-act").value,sd=$("f-reg-sede").value,q=$("f-reg-q").value.trim().toLowerCase();
-  const list=E.filter(e=>(!w||e.name===w)&&(!a||e.act===a)&&(!sd||e.sede===sd)&&(!q||[e.cliente,e.note,e.name].join(" ").toLowerCase().includes(q))).sort((x,y)=>(y.date+y.created).localeCompare(x.date+x.created));
+  const w=$("f-reg-who").value,a=$("f-reg-act").value,sd=$("f-reg-sede").value,q=norm($("f-reg-q").value);
+  const list=E.filter(e=>(!w||e.name===w)&&(!a||e.act===a)&&(!sd||e.sede===sd)&&(!q||norm([e.cliente,e.note,e.name].join(" ")).includes(q))).sort((x,y)=>(y.date+y.created).localeCompare(x.date+x.created));
   const tot=list.reduce((t,e)=>t+e.amount,0);
-  $("t-reg").innerHTML=list.length?`<thead><tr><th>Data</th><th>Persona</th><th>Attività</th><th class="n">Q.tà</th><th>Cliente</th><th>Sede</th><th>Note</th><th class="n">Tariffa</th><th class="n">Importo</th></tr></thead><tbody>${list.map(e=>`<tr><td>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></td><td>${esc(e.name)}</td><td>${esc(ACT[e.act]||e.act)}</td><td class="n">${qn(e.qty)}</td><td>${esc(e.cliente||"")}</td><td>${esc(e.sede||"")}</td><td>${esc(e.note||"")}</td><td class="n">${eur(e.rate)}</td><td class="n">${eur(e.amount)}</td></tr>`).join("")}<tr class="tot"><td colspan="8">${list.length} registrazioni</td><td class="n">${eur(tot)}</td></tr></tbody>`
+  $("reg-sub").textContent=closed?"Mese chiuso: eliminazione disabilitata":"";
+  $("t-reg").innerHTML=list.length?`<thead><tr><th>Data</th><th>Persona</th><th>Attività</th><th class="n">Q.tà</th><th>Cliente</th><th>Sede</th><th>Note</th><th class="n">Tariffa</th><th class="n">Importo</th><th></th></tr></thead><tbody>${list.map(e=>`<tr><td>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></td><td>${esc(e.name)}</td><td>${esc(ACT[e.act]||e.act)}</td><td class="n">${qn(e.qty)}</td><td>${esc(e.cliente||"")}</td><td>${esc(e.sede||"")}</td><td>${esc(e.note||"")}</td><td class="n">${eur(e.rate)}</td><td class="n">${eur(e.amount)}</td><td class="n">${closed?"":`<button type="button" class="${S.armed===e.id?"danger":"ghost"}" data-xdel="${esc(e.id)}">${S.armed===e.id?"Conferma":"Elimina"}</button>`}</td></tr>`).join("")}<tr class="tot"><td colspan="8">${list.length} registrazioni</td><td class="n">${eur(tot)}</td><td></td></tr></tbody>`
     :'<tbody><tr><td class="empty">Nessuna registrazione.</td></tr></tbody>';
 }
-["f-pt-who","f-pt-act"].forEach(id=>$(id).onchange=renderPT);$("f-pt-q").oninput=renderPT;
-$("f-pul-who").onchange=renderPul;
 ["f-reg-who","f-reg-act","f-reg-sede"].forEach(id=>$(id).onchange=renderReg);$("f-reg-q").oninput=renderReg;
+
+/* eliminazioni a doppio tocco */
+document.addEventListener("click",async e=>{
+  const xe=e.target.closest("[data-xex]"),xd=e.target.closest("[data-xdel]");
+  const el=xe||xd;if(!el)return;
+  const id=xe?xe.dataset.xex:xd.dataset.xdel;
+  if(S.armed!==id){S.armed=id;xe?renderExtra():renderReg();return}
+  S.armed=null;el.disabled=true;
+  try{const d=await run(xe?"api_deleteExtra":"api_adminDelete",S.pin,id);if(d.month===S.month)S.d=d;err(null);render();toast(xe?"Voce eliminata":"Registrazione eliminata")}
+  catch(z){fail(z);if(S.d)render()}
+});
+
+/* azioni del mese */
+$("b-close").onclick=async()=>{
+  const close=!S.d.closed,b=$("b-close");
+  if(close&&S.armed!=="close"){S.armed="close";b.textContent="Conferma chiusura";return}
+  S.armed=null;b.disabled=true;
+  try{const d=await run("api_setClosed",S.pin,S.month,close);if(d.month===S.month)S.d=d;render();toast(close?"Mese chiuso: lo staff non può più modificarlo":"Mese riaperto")}
+  catch(x){fail(x)}finally{b.disabled=false}
+};
+$("b-export").onclick=async()=>{
+  const b=$("b-export");b.disabled=true;b.textContent="Creo il file…";
+  try{
+    const r=await run("api_export",S.pin,S.month);
+    $("x-links").innerHTML=`<a href="${esc(r.url)}" target="_blank" rel="noopener">Apri Google Sheet</a><a href="${esc(r.xlsx)}" target="_blank" rel="noopener">Scarica Excel</a><a href="${esc(r.pdf)}" target="_blank" rel="noopener">Scarica PDF</a>`;
+    $("x-text").value=r.text;$("x-export").hidden=false;toast("Export creato nella cartella Drive");
+  }catch(x){fail(x)}finally{b.disabled=false;b.textContent="Export dettagliato (Excel)"}
+};
+$("b-modulo").onclick=async()=>{
+  const b=$("b-modulo");b.disabled=true;b.textContent="Preparo modulo ed email…";$("x-modulo").hidden=true;
+  try{
+    const r=await run("api_modulo",S.pin,S.month);
+    $("x-modulo").innerHTML=`<b>Modulo pronto: ${r.count} collaboratori, totale ${eur(r.total)}.</b><br>La bozza email per consulenzalavoro@studiomattonai.it ha già il PDF in allegato: controllala e inviala.<div class="links"><a href="${esc(r.draft)}" target="_blank" rel="noopener">Apri bozza email</a><a href="${esc(r.pdf)}" target="_blank" rel="noopener">Apri PDF</a></div>`;
+    $("x-modulo").hidden=false;toast("Modulo e bozza email creati");
+  }catch(x){fail(x)}finally{b.disabled=false;b.textContent="Modulo compensi per Studio Mattonai"}
+};
+$("b-copy").onclick=async()=>{
+  try{await navigator.clipboard.writeText($("x-text").value);toast("Messaggio copiato")}
+  catch(e){$("x-text").select();toast("Testo selezionato: copialo con Ctrl+C")}
+};
 
 /* ---------- avvio ---------- */
 S.pin=load("eo-dash-pin")||"";
