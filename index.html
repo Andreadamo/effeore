@@ -100,6 +100,12 @@ label input,label select,label textarea{text-transform:none;letter-spacing:0;fon
 .notice.err{background:var(--crit-soft);color:var(--fg);border:1px solid var(--crit)}
 .notice.lock{background:var(--warn-soft);color:var(--fg);border:1px solid var(--warn)}
 .est{text-align:center;color:var(--muted);font-size:14px}
+.indrow{display:grid;grid-template-columns:1fr auto;gap:8px}
+.ichips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ichips:empty{display:none}
+.ichip{display:inline-flex;align-items:center;gap:6px;padding:6px 6px 6px 12px;border-radius:999px;border:1px solid var(--accent);background:var(--accent-soft);font-size:14px}
+.ichip button{min-height:0;width:26px;height:26px;padding:0;border-radius:50%;line-height:1;font-size:16px}
+.ind-help{font-size:12px;color:var(--muted);margin-top:6px}
 .est b{color:var(--fg);font-variant-numeric:tabular-nums}
 .tbl-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:14px}
@@ -179,6 +185,12 @@ img{max-width:100%}
     </div>
     <label id="a-cli-wrap" hidden><span id="a-cli-l">Cliente del PT</span><input id="a-cli" list="cli-list" maxlength="80" placeholder="Nome e cognome del cliente" autocomplete="off"></label>
     <datalist id="cli-list"></datalist>
+    <div class="group" id="a-ind-wrap" hidden>
+      <label for="a-ind">Lezioni individuali fatte (facoltativo)</label>
+      <div class="indrow"><input id="a-ind" list="cli-list" maxlength="80" placeholder="Nome e cognome del cliente" autocomplete="off" enterkeyhint="done"><button type="button" class="ghost" id="b-ind">Aggiungi</button></div>
+      <div class="ichips" id="a-ind-list"></div>
+      <div class="ind-help">Un nome = una lezione. Le ore si segnano sopra come sempre, il compenso non cambia. Ore già segnate? Metti 0 ore e aggiungi solo i clienti.</div>
+    </div>
     <div class="row2">
       <label>Sede<select id="a-sede"></select></label>
       <label>Note<input id="a-note" maxlength="200" placeholder="facoltativo"></label>
@@ -238,7 +250,7 @@ img{max-width:100%}
     <div class="sub" id="x-fixed"></div>
   </div>
   <div class="card">
-    <h2>PT e coaching online per cliente</h2>
+    <h2>PT, coaching e lezioni individuali per cliente</h2>
     <div class="list" id="x-pt"></div>
   </div>
   <div class="card">
@@ -260,12 +272,13 @@ img{max-width:100%}
 <script src="config.js"></script>
 <script>
 const $=id=>document.getElementById(id);
-const S={init:null,me:null,act:null,month:null,mine:null,pin:"",xmonth:null,admin:null,filter:"",armed:null};
+const S={init:null,me:null,act:null,month:null,mine:null,pin:"",xmonth:null,admin:null,filter:"",armed:null,ind:[]};
 const ROLE_CLASS={"Operativo":"op","New entry":"ne","Amministrativo":"ad"};
 const ROLE_LABEL={"Operativo":"Staff operativo","New entry":"New entry","Amministrativo":"Amministrazione e soci"};
 const UNIT={ora:["ora","ore"],lezione:["lezione","lezioni"],scheda:["scheda","schede"],cliente:["cliente","clienti"],mese:["mese","mesi"]};
-const ACT_LABEL={Classi:"Ore classi",Ore:"Ore",PT:"PT",Coaching:"Coaching online",Schede:"Schede",Pulizia:"Pulizia"};
+const ACT_LABEL={Classi:"Ore classi",Ore:"Ore",PT:"PT",Coaching:"Coaching online",Schede:"Schede",Pulizia:"Pulizia",Individuale:"Lezione individuale"};
 const CLIENT_ACTS=["PT","Coaching"];
+const IND="Individuale";
 
 /* ---------- utilità ---------- */
 async function run(fn,...args){
@@ -347,8 +360,21 @@ function renderActs(){
   $("a-cli-wrap").hidden=!CLIENT_ACTS.includes(S.act);
   $("a-cli-l").textContent=S.act==="Coaching"?"Nome e cognome del cliente (coaching online, 1 volta al mese)":"Cliente del PT";
   if(S.act==="Coaching")$("a-qty").value="1";
-  updUnit();
+  $("a-ind-wrap").hidden=S.act!=="Ore";
+  if(S.act!=="Ore"){S.ind=[];$("a-ind").value=""}
+  renderInd();updUnit();
 }
+function renderInd(){
+  $("a-ind-list").innerHTML=S.ind.map((c,i)=>`<span class="ichip">${esc(c)}<button type="button" class="ghost" data-rmind="${i}" aria-label="Togli ${esc(c)}">×</button></span>`).join("");
+}
+function addInd(){
+  const c=$("a-ind").value.replace(/\s+/g," ").trim();if(!c)return false;
+  if(S.ind.length>=20){err("Massimo 20 lezioni per registrazione.");return false}
+  S.ind.push(c.slice(0,80));$("a-ind").value="";renderInd();updUnit();return true;
+}
+$("b-ind").onclick=()=>{if(!addInd())$("a-ind").focus()};
+$("a-ind").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addInd()}});
+$("a-ind-list").onclick=e=>{const b=e.target.closest("[data-rmind]");if(!b)return;S.ind.splice(Number(b.dataset.rmind),1);renderInd();updUnit()};
 function step(){const r=curRate();return r&&r.unit==="ora"?0.5:1}
 function qty(){return Number(String($("a-qty").value).replace(",","."))||0}
 function updUnit(){
@@ -356,26 +382,32 @@ function updUnit(){
   const q=qty();
   $("a-unit").textContent=unitWord(r.unit,q);
   $("a-qty-l").textContent=r.unit==="ora"?"Ore":"Quantità";
-  $("a-est").innerHTML=q>0?`Compenso: <b>${eur(q*r.rate)}</b>`:"";
+  const ni=S.act==="Ore"?S.ind.length:0,li=ni?` · ${ni} ${ni===1?"lezione individuale":"lezioni individuali"}`:"";
+  $("a-est").innerHTML=q>0?`Compenso: <b>${eur(q*r.rate)}</b>${li}`:(ni?`Solo lezioni individuali${li}`:"");
 }
-$("q-minus").onclick=()=>{const v=Math.max(step(),Math.round((qty()-step())*100)/100);$("a-qty").value=String(v).replace(".",",");updUnit()};
+$("q-minus").onclick=()=>{const v=Math.max(S.act==="Ore"?0:step(),Math.round((qty()-step())*100)/100);$("a-qty").value=String(v).replace(".",",");updUnit()};
 $("q-plus").onclick=()=>{const v=Math.round((qty()+step())*100)/100;$("a-qty").value=String(v).replace(".",",");updUnit()};
 $("a-qty").oninput=updUnit;
 $("f-add").addEventListener("submit",async e=>{
   e.preventDefault();
   if(!S.me||!S.act)return;
-  const q=qty();if(!(q>0))return err("Inserisci una quantità maggiore di zero.");
+  if(S.act==="Ore")addInd();
+  const ind=S.act==="Ore"?S.ind.slice():[];
+  const q=qty();if(!(q>0)&&!ind.length)return err(S.act==="Ore"?"Inserisci le ore oppure aggiungi almeno una lezione individuale.":"Inserisci una quantità maggiore di zero.");
   const b=$("b-save");b.disabled=true;b.textContent="Salvataggio…";
-  const data={date:$("a-date").value,act:S.act,qty:q,sede:$("a-sede").value,note:$("a-note").value.trim(),cliente:$("a-cli").value.trim()};
+  const data={date:$("a-date").value,act:S.act,qty:q,sede:$("a-sede").value,note:$("a-note").value.trim(),cliente:$("a-cli").value.trim(),individuali:ind};
   if(CLIENT_ACTS.includes(data.act)&&!data.cliente){b.disabled=false;b.textContent="Registra";$("a-cli").focus();return err(data.act==="PT"?"Scrivi il nome del cliente del PT.":"Scrivi nome e cognome del cliente del coaching online.")}
   const r0=curRate(),m=data.date.slice(0,7),prev=S.mine;
-  const tmp={id:"tmp"+Date.now(),date:data.date,month:m,act:data.act,qty:q,unit:r0.unit,rate:r0.rate,amount:Math.round(q*r0.rate*100)/100,sede:data.sede,note:data.note,cliente:data.cliente,created:new Date().toISOString(),pending:true};
+  const now=new Date().toISOString(),tmps=[];
+  if(q>0)tmps.push({id:"tmp"+Date.now(),date:data.date,month:m,act:data.act,qty:q,unit:r0.unit,rate:r0.rate,amount:Math.round(q*r0.rate*100)/100,sede:data.sede,note:data.note,cliente:data.cliente,created:now,pending:true});
+  ind.forEach((c,i)=>tmps.push({id:"tmpi"+i+Date.now(),date:data.date,month:m,act:IND,qty:1,unit:"lezione",rate:0,amount:0,sede:data.sede,note:"",cliente:c,created:now,pending:true}));
   const base=(prev&&prev.month===m)?prev:(cachedMine(m)||{month:m,closed:false,entries:[],clients:[]});
-  S.month=m;S.mine=Object.assign({},base,{entries:[tmp].concat(base.entries||[]).sort((a,b)=>(b.date+b.created).localeCompare(a.date+a.created))});renderMine();
-  $("a-note").value="";$("a-cli").value="";b.disabled=false;b.textContent="Registra";
-  toast(`Registrato: ${ACT_LABEL[data.act]||data.act} ${qn(q)} ${unitWord(r0.unit,q)}`);store("eo-sede",data.sede);
+  S.month=m;S.mine=Object.assign({},base,{entries:tmps.concat(base.entries||[]).sort((a,b)=>(b.date+b.created).localeCompare(a.date+a.created))});renderMine();
+  $("a-note").value="";$("a-cli").value="";S.ind=[];renderInd();b.disabled=false;b.textContent="Registra";
+  toast("Registrato: "+[q>0?`${ACT_LABEL[data.act]||data.act} ${qn(q)} ${unitWord(r0.unit,q)}`:"",ind.length?`${ind.length} ${ind.length===1?"lezione individuale":"lezioni individuali"}`:""].filter(Boolean).join(" + "));
+  if(S.act==="Ore"&&!(q>0))$("a-qty").value="1";updUnit();store("eo-sede",data.sede);
   try{const d=await run("api_add",S.token,data);cacheMine(d);if(S.month===d.month){S.mine=d;renderMine()}}
-  catch(x){if(S.month===m){S.mine=base;renderMine()}if(!sessionLost(x))err("Non salvato: "+String(x&&x.message||x).replace(/^Error:\s*/,""))}
+  catch(x){if(S.month===m){S.mine=base;renderMine()}if(ind.length&&!S.ind.length){S.ind=ind;renderInd();updUnit()}if(!sessionLost(x))err("Non salvato: "+String(x&&x.message||x).replace(/^Error:\s*/,""))}
 });
 
 /* ---------- il tuo mese ---------- */
@@ -396,15 +428,15 @@ function renderMine(){
   $("m-next").disabled=d.month>=S.init.today.slice(0,7);
   const by={};let tot=0;
   d.entries.forEach(e=>{by[e.act]=by[e.act]||{q:0,u:e.unit};by[e.act].q+=e.qty;tot+=e.amount});
-  const order=["Classi","Ore","PT","Coaching","Schede","Pulizia"];
-  $("m-tiles").innerHTML=order.filter(a=>by[a]).map(a=>`<div class="tile"><b>${qn(by[a].q)}</b><span>${esc(ACT_LABEL[a])}${by[a].u==="ora"&&a!=="Classi"&&a!=="Ore"?" (ore)":""}</span></div>`).join("")+
+  const order=["Classi","Ore","PT","Coaching","Schede","Pulizia",IND];
+  $("m-tiles").innerHTML=order.filter(a=>by[a]).map(a=>`<div class="tile"><b>${qn(by[a].q)}</b><span>${esc(a===IND?"Lezioni individuali":ACT_LABEL[a])}${by[a].u==="ora"&&a!=="Classi"&&a!=="Ore"?" (ore)":""}</span></div>`).join("")+
     `<div class="tile tot"><b>${eur(tot)}</b><span>Totale mese</span></div>`;
   if(!d.entries.length){$("m-list").innerHTML='<div class="empty">Nessuna registrazione in questo mese.</div>';return}
   let h="",last="";
   d.entries.forEach(e=>{
     if(e.date!==last){h+=`<div class="day">${esc(dLabel(e.date))}</div>`;last=e.date}
     const del=(d.closed||e.pending)?(e.pending?'<small class="sub">salvo…</small>':""):`<button type="button" class="${S.armed===e.id?"danger":"ghost"}" data-del="${esc(e.id)}">${S.armed===e.id?"Conferma":"Elimina"}</button>`;
-    h+=`<div class="item"><div class="l"><b>${esc(ACT_LABEL[e.act]||e.act)} · ${qn(e.qty)} ${esc(unitWord(e.unit,e.qty))}</b><small>${esc([e.cliente,e.sede,e.note].filter(Boolean).join(" · ")||"—")}</small></div><div class="r"><span>${eur(e.amount)}</span>${del}</div></div>`;
+    h+=`<div class="item"><div class="l"><b>${esc(ACT_LABEL[e.act]||e.act)} · ${qn(e.qty)} ${esc(unitWord(e.unit,e.qty))}</b><small>${esc([e.cliente,e.sede,e.note].filter(Boolean).join(" · ")||"—")}</small></div><div class="r"><span>${e.act===IND?"—":eur(e.amount)}</span>${del}</div></div>`;
   });
   $("m-list").innerHTML=h;
 }
@@ -467,7 +499,7 @@ function renderAdminExtra(){
   $("x-extras").innerHTML=(d.extras||[]).length?d.extras.map(x=>`<div class="item"><div class="l"><b>${esc(x.name)}</b><small>${esc(x.desc)}</small></div><div class="r"><span>${eur(x.amount)}</span>${d.closed?"":`<button type="button" class="${S.armed===x.id?"danger":"ghost"}" data-xex="${esc(x.id)}">${S.armed===x.id?"Conferma":"Elimina"}</button>`}</div></div>`).join(""):'<div class="empty">Nessuna voce extra in questo mese.</div>';
   const fx=(d.fixed||[]).filter(f=>f.active);
   $("x-fixed").innerHTML=fx.length?"Fissi mensili applicati ogni mese: "+fx.map(f=>`${esc(f.name)} ${eur(f.amount)} (${esc(f.desc)})`).join(" · ")+". Si modificano nella tab “Voci fisse” dell'archivio.":"";
-  $("x-pt").innerHTML=(d.pt||[]).length?d.pt.map(t=>`<div class="day">${esc(t.name)} · ${t.clients.reduce((a,c)=>a+c.n,0)}</div>`+t.clients.map(c=>`<div class="item"><div class="l"><b>${esc(c.name)}</b></div><div class="r"><span>${qn(c.n)}</span></div></div>`).join("")).join(""):'<div class="empty">Nessun PT o coaching registrato in questo mese.</div>';
+  $("x-pt").innerHTML=(d.pt||[]).length?d.pt.map(t=>`<div class="day">${esc(t.name)} · ${t.clients.reduce((a,c)=>a+c.n,0)}</div>`+t.clients.map(c=>`<div class="item"><div class="l"><b>${esc(c.name)}</b></div><div class="r"><span>${qn(c.n)}</span></div></div>`).join("")).join(""):'<div class="empty">Nessun PT, coaching o lezione individuale registrati in questo mese.</div>';
 }
 $("f-extra").addEventListener("submit",async e=>{
   e.preventDefault();const b=$("b-extra");b.disabled=true;

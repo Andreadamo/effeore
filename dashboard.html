@@ -222,10 +222,10 @@ details.cl[open] summary::after{content:"▴"}
     <!-- LEZIONI INDIVIDUALI -->
     <div class="pane" id="p-pt" hidden>
       <section class="card">
-        <div class="card-h"><h2>Lezioni individuali</h2><span class="sub">PT e coaching online per trainer e cliente</span></div>
+        <div class="card-h"><h2>Lezioni individuali</h2><span class="sub">PT, coaching e individuali New entry per trainer e cliente</span></div>
         <div class="toolbar">
           <input id="pt-q" class="grow" type="search" placeholder="Cerca cliente per nome e cognome…" autocomplete="off" aria-label="Cerca cliente">
-          <select id="pt-act" aria-label="Tipo"><option value="">PT e coaching</option><option value="PT">Solo PT</option><option value="Coaching">Solo coaching online</option></select>
+          <select id="pt-act" aria-label="Tipo"><option value="">Tutti i tipi</option><option value="PT">Solo PT</option><option value="Coaching">Solo coaching online</option><option value="Individuale">Solo individuali New entry</option></select>
           <div class="seg" id="pt-view"><button type="button" data-v="cli" class="on">Per cliente</button><button type="button" data-v="list">Cronologico</button></div>
         </div>
         <div class="chips" id="pt-chips"></div>
@@ -267,7 +267,8 @@ details.cl[open] summary::after{content:"▴"}
 <script>
 const $=id=>document.getElementById(id);
 const S={pin:"",month:"",d:null,tab:"home",who:{pt:"",pul:""},ptView:"cli",armed:null,open:new Set()};
-const ACT={Classi:"Ore classi",Ore:"Ore",PT:"PT",Coaching:"Coaching online",Schede:"Schede",Pulizia:"Pulizia"};
+const ACT={Classi:"Ore classi",Ore:"Ore",PT:"PT",Coaching:"Coaching online",Schede:"Schede",Pulizia:"Pulizia",Individuale:"Lezione individuale"};
+const LI=["PT","Coaching","Individuale"],kind=a=>a==="PT"?"PT":a==="Coaching"?"Coaching":"Individuale";
 const ORDER=["Classi","Ore","PT","Coaching","Schede","Pulizia"];
 const ROLE={Operativo:"Staff operativo","New entry":"New entry",Amministrativo:"Amministrativi e soci"};
 const TABS=[["home","Compensi"],["extra","Extra"],["pt","Lezioni individuali"],["pul","Pulizie"],["reg","Registro"]];
@@ -329,7 +330,7 @@ function setTab(t){
   TABS.forEach(([k])=>$("p-"+k).hidden=k!==t);renderTabs();window.scrollTo(0,0);
 }
 function renderTabs(){
-  const d=S.d,n={extra:d?(d.extras||[]).length:0,pt:d?d.entries.filter(e=>e.act==="PT"||e.act==="Coaching").length:0,pul:d?d.entries.filter(e=>e.act==="Pulizia").length:0,reg:d?d.entries.length:0};
+  const d=S.d,n={extra:d?(d.extras||[]).length:0,pt:d?d.entries.filter(e=>LI.includes(e.act)).length:0,pul:d?d.entries.filter(e=>e.act==="Pulizia").length:0,reg:d?d.entries.length:0};
   $("tabbar").innerHTML=TABS.map(([k,l])=>`<button type="button" data-t="${k}" class="${k===S.tab?"on":""}">${l}${n[k]!=null&&k!=="home"?`<i>${n[k]}</i>`:""}</button>`).join("");
 }
 $("tabbar").onclick=e=>{const b=e.target.closest("[data-t]");if(b)setTab(b.dataset.t)};
@@ -382,7 +383,7 @@ $("f-extra").addEventListener("submit",async e=>{
 
 /* lezioni individuali */
 function renderPT(){
-  const all=S.d.entries.filter(e=>e.act==="PT"||e.act==="Coaching");
+  const all=S.d.entries.filter(e=>LI.includes(e.act));
   const act=$("pt-act").value,q=norm($("pt-q").value).split(/\s+/).filter(Boolean);
   const cnt={};all.forEach(e=>cnt[e.name]=(cnt[e.name]||0)+1);
   const names=Object.keys(cnt).sort(it);
@@ -392,10 +393,10 @@ function renderPT(){
   const nq=list.reduce((t,e)=>t+e.qty,0),ncl=new Set(list.map(e=>norm(e.cliente)||"-")).size,te=list.reduce((t,e)=>t+e.amount,0);
   $("pt-sum").innerHTML=list.length?`<b>${qn(nq)}</b> lezioni · <b>${ncl}</b> ${ncl===1?"cliente":"clienti"} · <b>${eur(te)}</b>${q.length?` · risultati per “${esc($("pt-q").value.trim())}”`:""}`:"";
   [...$("pt-view").children].forEach(b=>b.classList.toggle("on",b.dataset.v===S.ptView));
-  if(!list.length){$("pt-body").innerHTML=`<div class="empty">${q.length?"Nessun cliente trovato in questo mese.":"Nessun PT o coaching registrato in questo mese."}</div>`;return}
+  if(!list.length){$("pt-body").innerHTML=`<div class="empty">${q.length?"Nessun cliente trovato in questo mese.":"Nessuna lezione individuale registrata in questo mese."}</div>`;return}
   if(S.ptView==="list"){
     const L=list.slice().sort((x,y)=>(y.date+y.created).localeCompare(x.date+x.created));
-    $("pt-body").innerHTML=`<div class="tbl-wrap scroll"><table><thead><tr><th>Data</th><th>Trainer</th><th>Cliente</th><th>Tipo</th><th class="n">N.</th><th>Sede</th><th class="n">€</th></tr></thead><tbody>${L.map(e=>`<tr><td>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></td><td>${esc(e.name)}</td><td><b>${esc(e.cliente||"—")}</b>${e.note?`<small>${esc(e.note)}</small>`:""}</td><td><span class="tag">${e.act==="PT"?"PT":"Coaching"}</span></td><td class="n">${qn(e.qty)}</td><td>${esc(e.sede||"—")}</td><td class="n">${eur(e.amount)}</td></tr>`).join("")}</tbody></table></div>`;
+    $("pt-body").innerHTML=`<div class="tbl-wrap scroll"><table><thead><tr><th>Data</th><th>Trainer</th><th>Cliente</th><th>Tipo</th><th class="n">N.</th><th>Sede</th><th class="n">€</th></tr></thead><tbody>${L.map(e=>`<tr><td>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></td><td>${esc(e.name)}</td><td><b>${esc(e.cliente||"—")}</b>${e.note?`<small>${esc(e.note)}</small>`:""}</td><td><span class="tag">${kind(e.act)}</span></td><td class="n">${qn(e.qty)}</td><td>${esc(e.sede||"—")}</td><td class="n">${eur(e.amount)}</td></tr>`).join("")}</tbody></table></div>`;
     return;
   }
   const byT={};
@@ -406,8 +407,8 @@ function renderPT(){
     return `<section class="tsec"><div class="th"><h3>${esc(tn)}</h3><span>${qn(all2.reduce((t,e)=>t+e.qty,0))} lezioni · ${cls.length} ${cls.length===1?"cliente":"clienti"} · ${eur(all2.reduce((t,e)=>t+e.amount,0))}</span></div><div class="cgrid">${cls.map(c=>{
       const rows=c.rows.slice().sort((x,y)=>(y.date+y.created).localeCompare(x.date+x.created));
       const key=tn+"|"+norm(c.name),n=rows.reduce((t,e)=>t+e.qty,0);
-      const kinds=[...new Set(rows.map(e=>e.act==="PT"?"PT":"Coaching"))].join(" + ");
-      return `<details class="cl" data-k="${esc(key)}"${S.open.has(key)||(q.length&&cls.length<=3)?" open":""}><summary><span class="nm"><b>${esc(c.name)}</b><small>${kinds} · ultima ${dmy(rows[0].date)}</small></span><span class="q">${qn(n)}<small>${eur(rows.reduce((t,e)=>t+e.amount,0))}</small></span></summary><div class="dl">${rows.map(e=>`<div><span>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></span><span>${e.act==="PT"?"PT":"Coaching"} ${qn(e.qty)}${e.sede?` · <small>${esc(e.sede)}</small>`:""}${e.note?` <small>· ${esc(e.note)}</small>`:""}</span><span>${eur(e.amount)}</span></div>`).join("")}</div></details>`}).join("")}</div></section>`;
+      const kinds=[...new Set(rows.map(e=>kind(e.act)))].join(" + ");
+      return `<details class="cl" data-k="${esc(key)}"${S.open.has(key)||(q.length&&cls.length<=3)?" open":""}><summary><span class="nm"><b>${esc(c.name)}</b><small>${kinds} · ultima ${dmy(rows[0].date)}</small></span><span class="q">${qn(n)}<small>${eur(rows.reduce((t,e)=>t+e.amount,0))}</small></span></summary><div class="dl">${rows.map(e=>`<div><span>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></span><span>${kind(e.act)} ${qn(e.qty)}${e.sede?` · <small>${esc(e.sede)}</small>`:""}${e.note?` <small>· ${esc(e.note)}</small>`:""}</span><span>${eur(e.amount)}</span></div>`).join("")}</div></details>`}).join("")}</div></section>`;
   }).join("");
 }
 $("pt-body").addEventListener("toggle",e=>{const k=e.target.dataset&&e.target.dataset.k;if(!k)return;e.target.open?S.open.add(k):S.open.delete(k)},true);

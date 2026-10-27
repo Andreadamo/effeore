@@ -3,6 +3,7 @@ const TZ = 'Europe/Rome';
 const SH = { staff: 'Staff', rates: 'Tariffe', log: 'Registro', cfg: 'Config', fixed: 'Voci fisse', extra: 'Voci extra', access: 'Accessi' };
 const ACT_ORDER = ['Classi', 'Ore', 'PT', 'Coaching', 'Schede', 'Pulizia'];
 const CLIENT_ACTS = ['PT', 'Coaching'];
+const IND = 'Individuale'; // lezione individuale segnata dalle New entry: solo monitoraggio, compenso 0 (pagano le ore)
 
 function doGet() {
   return HtmlService.createTemplateFromFile('Index').evaluate()
@@ -194,9 +195,12 @@ function api_add(token, e) {
   const month = date.slice(0, 7);
   if (closed_().indexOf(month) >= 0) throw new Error('Il mese di ' + monthLabel_(month) + ' è chiuso. Chiedi in amministrazione.');
   let q = num_(e.qty);
+  const ind = (rt.act === 'Ore' && Array.isArray(e.individuali) ? e.individuali : [])
+    .map(x => String(x || '').replace(/\s+/g, ' ').trim().slice(0, 80)).filter(String).slice(0, 20);
   if (rt.unit === 'ora') {
     q = Math.round(q * 4) / 4;
-    if (!(q > 0) || q > 16) throw new Error('Ore non valide: da 0,25 a 16 per registrazione.');
+    if (q === 0 && ind.length) { /* solo lezioni individuali, ore già segnate */ }
+    else if (!(q > 0) || q > 16) throw new Error('Ore non valide: da 0,25 a 16 per registrazione.');
   } else {
     q = Math.round(q);
     if (q < 1 || q > 30) throw new Error('Quantità non valida: da 1 a 30 per registrazione.');
@@ -212,11 +216,16 @@ function api_add(token, e) {
   const lock = LockService.getScriptLock(); lock.waitLock(20000);
   try {
     const now = new Date();
-    const dup = log_().some(x => x.staffId === st.id && x.date === date && x.act === rt.act && x.qty === q && x.sede === sede && x.cliente === cliente &&
-      (now - new Date(x.created)) < 120000);
+    const recent = log_().filter(x => x.staffId === st.id && x.date === date && x.sede === sede && (now - new Date(x.created)) < 120000);
+    const dup = q > 0 ? recent.some(x => x.act === rt.act && x.qty === q && x.cliente === cliente)
+      : ind.length && ind.every(c => recent.some(x => x.act === IND && x.cliente === c));
     if (dup) throw new Error('Registrazione già salvata un attimo fa.');
     MEMO.log = null;
-    sheet_(SH.log).appendRow([Utilities.getUuid().slice(0, 8), date, month, st.id, st.name, st.role, rt.act, q, rt.unit, rt.rate, amount, sede, note, now.toISOString(), cliente]);
+    const rows = [];
+    if (q > 0) rows.push([Utilities.getUuid().slice(0, 8), date, month, st.id, st.name, st.role, rt.act, q, rt.unit, rt.rate, amount, sede, note, now.toISOString(), cliente]);
+    ind.forEach(c => rows.push([Utilities.getUuid().slice(0, 8), date, month, st.id, st.name, st.role, IND, 1, 'lezione', 0, 0, sede, '', now.toISOString(), c]));
+    const sh = sheet_(SH.log);
+    sh.getRange(sh.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
   } finally { lock.releaseLock(); }
   MEMO.log = null;
   return mine_(st.id, month);
@@ -247,9 +256,9 @@ function api_admin(pin, month) {
     .sort((a, b) => a.name.localeCompare(b.name) || a.date.localeCompare(b.date));
   const sum = summary_(entries, month);
   const pt = {};
-  entries.filter(e => CLIENT_ACTS.indexOf(e.act) >= 0).forEach(e => {
+  entries.filter(e => CLIENT_ACTS.indexOf(e.act) >= 0 || e.act === IND).forEach(e => {
     const k = e.staffId; pt[k] = pt[k] || { name: e.name, clients: {} };
-    const c = (e.cliente || '(senza nome)') + (e.act === 'Coaching' ? ' · coaching online' : '');
+    const c = (e.cliente || '(senza nome)') + (e.act === 'Coaching' ? ' · coaching online' : e.act === IND ? ' · individuale' : '');
     pt[k].clients[c] = (pt[k].clients[c] || 0) + e.qty;
   });
   return {
@@ -349,7 +358,7 @@ function api_export(pin, month) {
 
   // Dettaglio
   const d = out.insertSheet('Dettaglio');
-  const dh = ['Data', 'Nome', 'Ruolo', 'Attività', 'Quantità', 'Unità', 'Tariffa €', 'Importo €', 'Sede', 'Cliente PT', 'Note'];
+  const dh = ['Data', 'Nome', 'Ruolo', 'Attività', 'Quantità', 'Unità', 'Tariffa €', 'Importo €', 'Sede', 'Cliente', 'Note'];
   d.getRange(1, 1, 1, dh.length).setValues([dh]).setFontWeight('bold').setBackground('#14263B').setFontColor('#FFFFFF');
   if (entries.length) {
     d.getRange(2, 1, entries.length, 1).setNumberFormat('@');
