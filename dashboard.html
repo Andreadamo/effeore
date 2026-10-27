@@ -306,13 +306,16 @@ $("f-login").addEventListener("submit",async e=>{
   try{if(await run("api_adminCheck",p)){S.pin=p;store("eo-dash-pin",p);start()}else{$("l-err").textContent="PIN non valido.";$("l-err").hidden=false}}
   catch(x){$("l-err").textContent=x.message;$("l-err").hidden=false}finally{b.disabled=false}
 });
-$("b-out").onclick=()=>{store("eo-dash-pin",null);S.pin="";$("v-dash").hidden=true;$("v-login").hidden=false;$("l-pin").value=""};
+$("b-out").onclick=()=>{store("eo-dash-pin",null);try{Object.keys(localStorage).filter(k=>k.startsWith("eo-dash-m-")).forEach(k=>localStorage.removeItem(k))}catch(_){}S.pin="";$("v-dash").hidden=true;$("v-login").hidden=false;$("l-pin").value=""};
 
 /* ---------- dati ---------- */
 async function loadData(quiet){
   if(!quiet)$("m-upd").textContent="caricamento…";
   $("m-label").textContent=mLabel(S.month);$("m-next").disabled=S.month>=todayIso().slice(0,7);
-  try{const d=await run("api_admin",S.pin,S.month);if(d.month!==S.month)return;S.d=d;err(null);render()}
+  // apertura istantanea: mostra subito l'ultimo dato salvato del mese, poi aggiorna dal server
+  const ck="eo-dash-m-"+S.month;
+  if(!S.d||S.d.month!==S.month){try{const c=JSON.parse(load(ck)||"null");if(c&&c.month===S.month){S.d=c;render();$("m-upd").textContent="aggiornamento…"}}catch(_){}}
+  try{const d=await run("api_admin",S.pin,S.month);if(d.month!==S.month)return;S.d=d;store(ck,JSON.stringify(d));err(null);render()}
   catch(x){if(/PIN/.test(x.message)){$("b-out").click();return}err(x);$("m-upd").textContent=""}
 }
 function start(){
