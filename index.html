@@ -576,7 +576,11 @@ document.addEventListener("click",async e=>{
 if(isIOS&&!standalone())instShow(true,"Tocca Condividi (il quadrato con la freccia) e poi “Aggiungi alla schermata Home”.");
 function netState(){document.querySelectorAll("[data-off]").forEach(el=>el.hidden=navigator.onLine)}
 window.addEventListener("online",()=>{netState();if(!S.init)boot()});window.addEventListener("offline",netState);netState();
-if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+if("serviceWorker" in navigator){
+  const hadSW=!!navigator.serviceWorker.controller;let reloaded=false;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(hadSW&&!reloaded){reloaded=true;location.reload()}});
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").then(r=>{r.update().catch(()=>{});document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")r.update().catch(()=>{})})}).catch(()=>{}));
+}
 
 /* ---------- avvio ---------- */
 async function boot(){
