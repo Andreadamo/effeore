@@ -576,11 +576,38 @@ document.addEventListener("click",async e=>{
 if(isIOS&&!standalone())instShow(true,"Tocca Condividi (il quadrato con la freccia) e poi “Aggiungi alla schermata Home”.");
 function netState(){document.querySelectorAll("[data-off]").forEach(el=>el.hidden=navigator.onLine)}
 window.addEventListener("online",()=>{netState();if(!S.init)boot()});window.addEventListener("offline",netState);netState();
-if("serviceWorker" in navigator){
-  const hadSW=!!navigator.serviceWorker.controller;let reloaded=false;
-  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(hadSW&&!reloaded){reloaded=true;location.reload()}});
-  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").then(r=>{r.update().catch(()=>{});document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")r.update().catch(()=>{})})}).catch(()=>{}));
-}
+if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+/* ---------- aggiornamento app: avviso + tasto "Aggiorna" (solo se aperta fuori dall'HUB) ---------- */
+(function(){
+  if(!("serviceWorker" in navigator)||!("caches" in window)||window.top!==window)return;
+  const PREFIX="effeore-";let shown=false,ready=false,last=0;
+  const hadSW=!!navigator.serviceWorker.controller;
+  function bar(msg,btn,fn){
+    let b=document.getElementById("upd-bar");
+    if(!b){b=document.createElement("div");b.id="upd-bar";b.setAttribute("role","status");
+      b.style.cssText="position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:9999;display:flex;align-items:center;gap:10px;justify-content:space-between;padding:12px 14px;border-radius:12px;background:#141414;color:#fff;box-shadow:0 6px 24px rgba(0,0,0,.35);font:600 15px/1.3 system-ui,sans-serif;max-width:560px;margin:0 auto";
+      document.body.appendChild(b)}
+    b.innerHTML='<span></span><button type="button" style="flex:none;background:#fff;color:#141414;border:0;border-radius:8px;padding:9px 14px;font:700 15px system-ui,sans-serif;cursor:pointer"></button>';
+    b.firstChild.textContent=msg;b.lastChild.textContent=btn;b.lastChild.onclick=fn;
+  }
+  async function verOnline(){const t=await fetch("sw.js",{cache:"no-store"}).then(r=>r.ok?r.text():"");return (t.match(/const CACHE\s*=\s*'([^']+)'/)||[])[1]||""}
+  async function update(v,btn){
+    btn.disabled=true;btn.textContent="Aggiorno…";
+    try{const r=await navigator.serviceWorker.getRegistration();if(r)await r.update();
+      for(let i=0;i<60&&!(await caches.has(v));i++)await new Promise(z=>setTimeout(z,250));}catch(e){}
+    location.reload();
+  }
+  async function check(){
+    if(shown||Date.now()-last<60000)return;last=Date.now();
+    try{const v=await verOnline();if(!v)return;
+      const mine=(await caches.keys()).filter(k=>k.startsWith(PREFIX));
+      if(mine.length&&!mine.includes(v)){shown=true;bar("Nuova versione disponibile","Aggiorna",e=>update(v,e.currentTarget))}}catch(e){}
+  }
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(hadSW&&!ready){ready=true;shown=true;bar("Aggiornamento pronto","Ricarica",()=>location.reload())}});
+  setTimeout(check,2500);
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")check()});
+})();
+
 
 /* ---------- avvio ---------- */
 async function boot(){
