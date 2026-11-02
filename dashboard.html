@@ -152,6 +152,7 @@ details.cl[open] summary::after{content:"▴"}
 .links a{color:var(--fg);font-weight:600}
 .box{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface-2)}
 .box textarea{width:100%;min-height:150px;margin:8px 0;padding:8px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);font:inherit;font-size:13px}
+tr.sel td{background:var(--line)}
 .danger{background:var(--crit);border-color:var(--crit);color:#fff}
 .pane{display:flex;flex-direction:column;gap:16px}
 </style>
@@ -215,7 +216,17 @@ details.cl[open] summary::after{content:"▴"}
           <button class="primary" id="b-extra">Aggiungi voce</button>
         </form>
         <div class="tbl-wrap"><table id="t-extra"></table></div>
-        <div class="muted" id="x-fixed" style="font-size:13px;margin-top:10px"></div>
+      </section>
+      <section class="card">
+        <div class="card-h"><h2>Fissi mensili</h2><span class="sub" id="fx-sub"></span></div>
+        <form id="f-fixed" class="toolbar" autocomplete="off">
+          <select id="fx-staff" required aria-label="Persona"></select>
+          <input id="fx-amount" inputmode="decimal" placeholder="Importo mensile €" required aria-label="Importo">
+          <input id="fx-desc" class="grow" maxlength="120" placeholder="Descrizione (es. Project manager)" required aria-label="Descrizione">
+          <button class="primary" id="b-fixed">Aggiungi fisso</button>
+          <button type="button" class="ghost" id="b-fixed-x" hidden>Annulla</button>
+        </form>
+        <div class="tbl-wrap"><table id="t-fixed"></table></div>
       </section>
     </div>
 
@@ -271,7 +282,7 @@ const ACT={Classi:"Ore classi",Ore:"Ore",PT:"PT",Coaching:"Coaching online",Sche
 const LI=["PT","Coaching","Individuale"],kind=a=>a==="PT"?"PT":a==="Coaching"?"Coaching":"Individuale";
 const ORDER=["Classi","Ore","PT","Coaching","Schede","Pulizia"];
 const ROLE={Operativo:"Staff operativo","New entry":"New entry",Amministrativo:"Amministrativi e soci"};
-const TABS=[["home","Compensi"],["extra","Extra"],["pt","Lezioni individuali"],["pul","Pulizie"],["reg","Registro"]];
+const TABS=[["home","Compensi"],["extra","Extra e fissi"],["pt","Lezioni individuali"],["pul","Pulizie"],["reg","Registro"]];
 async function run(fn,...args){
   let r;try{r=await fetch(window.EFFEORE_API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({fn,args}),cache:"no-store"})}
   catch(e){throw new Error("Connessione non riuscita. Riprova.")}
@@ -374,9 +385,39 @@ function renderExtra(){
   const x=d.extras||[];
   $("t-extra").innerHTML=x.length?`<thead><tr><th>Persona</th><th>Descrizione</th><th class="n">Importo</th><th></th></tr></thead><tbody>${x.map(v=>`<tr><td><b>${esc(v.name)}</b></td><td>${esc(v.desc)}</td><td class="n">${eur(v.amount)}</td><td class="n">${d.closed?"":`<button type="button" class="${S.armed===v.id?"danger":"ghost"}" data-xex="${esc(v.id)}">${S.armed===v.id?"Conferma":"Elimina"}</button>`}</td></tr>`).join("")}</tbody>`
     :`<tbody><tr><td class="empty">${d.closed?"Mese chiuso: nessuna voce extra.":"Nessuna voce extra in questo mese."}</td></tr></tbody>`;
-  const fx=(d.fixed||[]).filter(f=>f.active);
-  $("x-fixed").innerHTML=fx.length?"Fissi mensili applicati ogni mese: "+fx.map(f=>`${esc(f.name)} ${eur(f.amount)} (${esc(f.desc)})`).join(" · ")+". Si modificano nella tab “Voci fisse” dell'archivio.":"";
+  renderFixed();
 }
+
+/* fissi mensili: ogni modifica vale dal mese visualizzato in poi */
+const mLab=m=>{const [y,mm]=m.split("-").map(Number);return new Date(y,mm-1,1).toLocaleDateString("it-IT",{month:"long",year:"numeric"})};
+function renderFixed(){
+  const d=S.d,fx=d.fixed||[],sel=$("fx-staff"),cur=sel.value,ed=S.fxEdit&&fx.find(f=>f.row===S.fxEdit);
+  if(S.fxEdit&&!ed)S.fxEdit=null;
+  sel.innerHTML='<option value="">Persona…</option>'+(d.staff||[]).slice().sort((a,b)=>it(a.name,b.name)).map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("");
+  sel.value=ed?ed.staffId:cur;sel.disabled=!!ed;
+  $("f-fixed").hidden=d.closed;$("b-fixed").textContent=ed?"Salva da "+mLab(S.month):"Aggiungi fisso";$("b-fixed-x").hidden=!ed;
+  $("fx-sub").textContent=d.closed?"Mese chiuso: fissi bloccati.":"Le modifiche valgono da "+mLab(S.month)+" in poi; i mesi prima restano invariati.";
+  const tot=fx.reduce((t,f)=>t+f.amount,0);
+  $("t-fixed").innerHTML=fx.length?`<thead><tr><th>Persona</th><th>Descrizione</th><th>Validità</th><th class="n">Importo</th><th></th></tr></thead><tbody>${fx.map(f=>`<tr${S.fxEdit===f.row?' class="sel"':""}><td><b>${esc(f.name)}</b></td><td>${esc(f.desc)}</td><td class="muted">${f.from?"da "+mLab(f.from):"sempre"}${f.to?" a "+mLab(f.to):""}</td><td class="n">${eur(f.amount)}</td><td class="n">${d.closed?"":`<button type="button" class="ghost" data-fxed="${f.row}">Modifica</button><button type="button" class="${S.armed==="fx"+f.row?"danger":"ghost"}" data-fxstop="${f.row}">${S.armed==="fx"+f.row?"Conferma":"Togli"}</button>`}</td></tr>`).join("")}<tr class="tot"><td colspan="3">Totale fissi del mese</td><td class="n">${eur(tot)}</td><td></td></tr></tbody>`
+    :'<tbody><tr><td class="empty">Nessun fisso in questo mese.</td></tr></tbody>';
+}
+$("f-fixed").addEventListener("submit",async e=>{
+  e.preventDefault();const b=$("b-fixed");b.disabled=true;
+  const x={row:S.fxEdit||null,from:S.month,staffId:$("fx-staff").value,desc:$("fx-desc").value.trim(),amount:Number(String($("fx-amount").value).replace(/\s/g,"").replace(",","."))};
+  try{const d=await run("api_saveFixed",S.pin,x);if(d.month===S.month)S.d=d;S.fxEdit=null;$("fx-desc").value="";$("fx-amount").value="";err(null);render();toast(x.row?"Fisso aggiornato":"Fisso aggiunto")}
+  catch(z){fail(z)}finally{b.disabled=false}
+});
+$("b-fixed-x").onclick=()=>{S.fxEdit=null;$("fx-desc").value="";$("fx-amount").value="";renderFixed()};
+document.addEventListener("click",async e=>{
+  const ed=e.target.closest("[data-fxed]"),st=e.target.closest("[data-fxstop]");
+  if(ed){const f=(S.d.fixed||[]).find(v=>v.row===Number(ed.dataset.fxed));if(!f)return;S.fxEdit=f.row;S.armed=null;$("fx-desc").value=f.desc;$("fx-amount").value=String(f.amount).replace(".",",");renderFixed();$("fx-amount").focus();return}
+  if(!st)return;
+  const row=Number(st.dataset.fxstop);
+  if(S.armed!=="fx"+row){S.armed="fx"+row;renderFixed();return}
+  S.armed=null;st.disabled=true;
+  try{const d=await run("api_stopFixed",S.pin,row,S.month);if(d.month===S.month)S.d=d;if(S.fxEdit===row)S.fxEdit=null;err(null);render();toast("Fisso tolto da "+mLab(S.month))}
+  catch(z){fail(z);if(S.d)render()}
+});
 $("f-extra").addEventListener("submit",async e=>{
   e.preventDefault();const b=$("b-extra");b.disabled=true;
   const x={month:S.month,staffId:$("e-staff").value,desc:$("e-desc").value.trim(),amount:Number(String($("e-amount").value).replace(/\s/g,"").replace(",","."))};

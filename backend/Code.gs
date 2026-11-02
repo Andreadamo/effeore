@@ -13,7 +13,7 @@ function doGet() {
 }
 
 /* ================= ingresso dati per la PWA ================= */
-const API_FN = ['api_boot', 'api_init', 'api_requestPin', 'api_login', 'api_me', 'api_logout', 'api_mine', 'api_add', 'api_delete', 'api_adminCheck', 'api_admin', 'api_adminDelete', 'api_setClosed', 'api_export', 'api_modulo', 'api_addExtra', 'api_deleteExtra'];
+const API_FN = ['api_boot', 'api_init', 'api_requestPin', 'api_login', 'api_me', 'api_logout', 'api_mine', 'api_add', 'api_delete', 'api_adminCheck', 'api_admin', 'api_adminDelete', 'api_setClosed', 'api_export', 'api_modulo', 'api_addExtra', 'api_deleteExtra', 'api_saveFixed', 'api_stopFixed'];
 
 function doPost(e) {
   let out;
@@ -263,7 +263,7 @@ function api_admin(pin, month) {
   });
   return {
     month: month, closed: closed_().indexOf(month) >= 0, summary: sum, entries: entries,
-    extras: extras_(month), fixed: fixedAll_(),
+    extras: extras_(month), fixed: fixedFor_(month),
     staff: staff_().filter(s => s.active).map(s => ({ id: s.id, name: s.name, role: s.role })),
     pt: Object.keys(pt).map(k => ({ id: k, name: pt[k].name, clients: Object.keys(pt[k].clients).sort((a, b) => a.localeCompare(b)).map(c => ({ name: c, n: pt[k].clients[c] })) }))
       .sort((a, b) => a.name.localeCompare(b.name)),
@@ -441,7 +441,7 @@ function moduloHtml_(label, rows) {
 /* ================= calcoli ================= */
 
 function summary_(entries, month) {
-  const staff = staff_(), fixed = fixedAll_(), extras = month ? extras_(month) : [];
+  const staff = staff_(), fixed = month ? fixedFor_(month) : fixedAll_().filter(f => f.active), extras = month ? extras_(month) : [];
   const by = {};
   const get = (id, name, role) => by[id] = by[id] || { id: id, name: name, role: role, q: {}, eur: {}, activity: 0, fixed: 0, extra: 0, fixedItems: [], extraItems: [] };
   entries.forEach(e => {
@@ -471,10 +471,76 @@ function summary_(entries, month) {
 function fixedAll_() {
   let sh; try { sh = sheet_(SH.fixed); } catch (e) { return []; }
   const n = sh.getLastRow(); if (n < 2) return [];
-  return sh.getRange(2, 1, n - 1, 5).getValues().filter(r => String(r[0]).trim()).map(r => ({
-    staffId: String(r[0]).trim(), name: String(r[1]).trim(), desc: String(r[2]).trim(), amount: num_(r[3]),
-    active: !(r[4] === false || /^(no|false|0)$/i.test(String(r[4]).trim()))
-  }));
+  const ym = v => v instanceof Date ? Utilities.formatDate(v, TZ, 'yyyy-MM') : String(v || '').trim().slice(0, 7);
+  return sh.getRange(2, 1, n - 1, 7).getValues().map((r, i) => ({
+    row: i + 2, staffId: String(r[0]).trim(), name: String(r[1]).trim(), desc: String(r[2]).trim(), amount: num_(r[3]),
+    active: !(r[4] === false || /^(no|false|0)$/i.test(String(r[4]).trim())),
+    from: /^\d{4}-\d{2}$/.test(ym(r[5])) ? ym(r[5]) : '', to: /^\d{4}-\d{2}$/.test(ym(r[6])) ? ym(r[6]) : ''
+  })).filter(f => f.staffId);
+}
+
+/* fissi validi in un mese: attivi e dentro "Dal mese" / "Al mese" (vuoto = sempre) */
+function fixedFor_(month) {
+  return fixedAll_().filter(f => f.active && (!f.from || f.from <= month) && (!f.to || f.to >= month));
+}
+
+function mAdd_(m, n) {
+  const d = new Date(Number(m.slice(0, 4)), Number(m.slice(5, 7)) - 1 + n, 1);
+  return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2);
+}
+
+function fixedSheet_() {
+  const sh = sheet_(SH.fixed);
+  if (sh.getRange(1, 6).getDisplayValue() !== 'Dal mese') sh.getRange(1, 6, 1, 2).setValues([['Dal mese', 'Al mese']]);
+  return sh;
+}
+
+function fixedCheckFrom_(from) {
+  checkMonth_(from);
+  const c = closed_().filter(m => m >= from).sort();
+  if (c.length) throw new Error('Il mese ' + monthLabel_(c[0]) + ' è chiuso: le modifiche ai fissi possono partire solo da un mese aperto successivo.');
+}
+
+/* modifica dal mese "from" in poi: i mesi precedenti restano col vecchio importo */
+function api_saveFixed(pin, x) {
+  auth_(pin);
+  const from = String(x && x.from || ''); fixedCheckFrom_(from);
+  const st = staff_().find(s => s.id === x.staffId);
+  if (!st) throw new Error('Scegli la persona.');
+  const desc = String(x.desc || '').trim().slice(0, 120);
+  if (!desc) throw new Error('Scrivi la descrizione del fisso.');
+  const amount = round_(num_(x.amount));
+  if (!(amount > 0)) throw new Error('Importo non valido.');
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const sh = fixedSheet_(), fmt = [['@', '@', '@', '#,##0.00', '@', '@', '@']];
+    const add = to => sh.getRange(sh.getLastRow() + 1, 1, 1, 7).setNumberFormats(fmt).setValues([[st.id, st.name, desc, amount, 'SI', from, to || '']]);
+    if (!x.row) { add(''); }
+    else {
+      const old = fixedAll_().find(f => f.row === Number(x.row));
+      if (!old || old.staffId !== st.id) throw new Error('Fisso non trovato: aggiorna la pagina.');
+      if (old.from && old.from >= from) {
+        sh.getRange(old.row, 2, 1, 3).setValues([[st.name, desc, amount]]);
+      } else {
+        sh.getRange(old.row, 7).setNumberFormat('@').setValue(mAdd_(from, -1));
+        add(old.to);
+      }
+    }
+  } finally { lock.releaseLock(); }
+  return api_admin(pin, from);
+}
+
+/* togli un fisso dal mese "from" in poi */
+function api_stopFixed(pin, row, from) {
+  auth_(pin); from = String(from || ''); fixedCheckFrom_(from);
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const sh = fixedSheet_(), old = fixedAll_().find(f => f.row === Number(row));
+    if (!old) throw new Error('Fisso non trovato: aggiorna la pagina.');
+    if (old.from && old.from >= from) sh.deleteRow(old.row);
+    else sh.getRange(old.row, 7).setNumberFormat('@').setValue(mAdd_(from, -1));
+  } finally { lock.releaseLock(); }
+  return api_admin(pin, from);
 }
 
 function extras_(month) {
