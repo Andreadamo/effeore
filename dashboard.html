@@ -278,9 +278,9 @@ tr.sel td{background:var(--line)}
 <script>
 const $=id=>document.getElementById(id);
 const S={pin:"",month:"",d:null,tab:"home",who:{pt:"",pul:""},ptView:"cli",armed:null,open:new Set()};
-const ACT={Classi:"Ore classi",Ore:"Ore",PT:"PT",Coaching:"Coaching online",Schede:"Schede",Pulizia:"Pulizia",Esterno:"Lavoro esterno",Individuale:"Lezione individuale"};
+const ACT={Classi:"Ore classi",Ore:"Ore",PT:"PT",Coaching:"Coaching online",Schede:"Schede",Pulizia:"Pulizia",Individuale:"Lezione individuale"};
 const LI=["PT","Coaching","Individuale"],kind=a=>a==="PT"?"PT":a==="Coaching"?"Coaching":"Individuale";
-const ORDER=["Classi","Ore","PT","Coaching","Schede","Pulizia","Esterno"];
+const ORDER=["Classi","Ore","PT","Coaching","Schede","Pulizia"];
 const ROLE={Operativo:"Staff operativo","New entry":"New entry",Amministrativo:"Amministrativi e soci"};
 const TABS=[["home","Compensi"],["extra","Extra e fissi"],["pt","Lezioni individuali"],["pul","Pulizie"],["reg","Registro"]];
 async function run(fn,...args){
@@ -364,7 +364,7 @@ function render(){
 }
 function renderComp(){
   const sm=S.d.summary,max=Math.max(1,...sm.rows.map(p=>p.total));
-  const cols=ORDER.map(a=>[a,a==="Classi"?"Classi h":a==="Ore"?"Ore":a==="Pulizia"?"Pulizia h":a==="Esterno"?"Esterne h":ACT[a]]);
+  const cols=ORDER.map(a=>[a,a==="Classi"?"Classi h":a==="Ore"?"Ore":a==="Pulizia"?"Pulizia h":ACT[a]]);
   const c=v=>v?`<td class="n">${qn(v)}</td>`:'<td class="n zero">–</td>';
   let b="",role="";
   sm.rows.forEach(p=>{
@@ -440,7 +440,7 @@ function renderPT(){
   if(!list.length){$("pt-body").innerHTML=`<div class="empty">${q.length?"Nessun cliente trovato in questo mese.":"Nessuna lezione individuale registrata in questo mese."}</div>`;return}
   if(S.ptView==="list"){
     const L=list.slice().sort((x,y)=>(y.date+y.created).localeCompare(x.date+x.created));
-    $("pt-body").innerHTML=`<div class="tbl-wrap scroll"><table><thead><tr><th>Data</th><th>Trainer</th><th>Cliente</th><th>Tipo</th><th class="n">N.</th><th>Sede</th><th class="n">€</th></tr></thead><tbody>${L.map(e=>`<tr><td>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></td><td>${esc(e.name)}</td><td><b>${esc(e.cliente||"—")}</b>${e.note?`<small>${esc(e.note)}</small>`:""}</td><td><span class="tag">${kind(e.act)}</span></td><td class="n">${qn(e.qty)}</td><td>${esc(e.sede||"—")}</td><td class="n">${eur(e.amount)}</td></tr>`).join("")}</tbody></table></div>`;
+    $("pt-body").innerHTML=`<div class="tbl-wrap scroll"><table><thead><tr><th>Data</th><th>Trainer</th><th>Cliente</th><th>Tipo</th><th class="n">N.</th><th>Luogo</th><th class="n">€</th></tr></thead><tbody>${L.map(e=>`<tr><td>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></td><td>${esc(e.name)}</td><td><b>${esc(e.cliente||"—")}</b>${e.note?`<small>${esc(e.note)}</small>`:""}</td><td><span class="tag">${kind(e.act)}</span></td><td class="n">${qn(e.qty)}</td><td>${esc(e.sede||"—")}</td><td class="n">${eur(e.amount)}</td></tr>`).join("")}</tbody></table></div>`;
     return;
   }
   const byT={};
@@ -477,7 +477,7 @@ function renderPul(){
   if(S.who.pul&&!names.includes(S.who.pul))S.who.pul="";
   chips($("pul-chips"),[["","Tutte le persone",P.length],...names.map(n=>[n,n,P.filter(e=>e.name===n).length])],S.who.pul,v=>{S.who.pul=v;renderPul()});
   const list=P.filter(e=>!S.who.pul||e.name===S.who.pul).sort((a,b)=>(b.date+b.created).localeCompare(a.date+a.created));
-  $("t-pul").innerHTML=list.length?`<thead><tr><th>Data</th><th>Chi</th><th class="n">Ore</th><th>Sede</th><th>Note</th><th>Registrato il</th><th class="n">€</th></tr></thead><tbody>${list.map(e=>`<tr><td>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></td><td><b>${esc(e.name)}</b></td><td class="n">${qn(e.qty)}</td><td>${esc(e.sede||"—")}</td><td>${esc(e.note||"")}</td><td class="muted">${stamp(e)}</td><td class="n">${eur(e.amount)}</td></tr>`).join("")}</tbody>`
+  $("t-pul").innerHTML=list.length?`<thead><tr><th>Data</th><th>Chi</th><th class="n">Ore</th><th>Luogo</th><th>Note</th><th>Registrato il</th><th class="n">€</th></tr></thead><tbody>${list.map(e=>`<tr><td>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></td><td><b>${esc(e.name)}</b></td><td class="n">${qn(e.qty)}</td><td>${esc(e.sede||"—")}</td><td>${esc(e.note||"")}</td><td class="muted">${stamp(e)}</td><td class="n">${eur(e.amount)}</td></tr>`).join("")}</tbody>`
     :'<tbody><tr><td class="empty">Nessuna pulizia.</td></tr></tbody>';
 }
 
@@ -486,12 +486,12 @@ function renderReg(){
   const E=S.d.entries,closed=S.d.closed;
   opts($("f-reg-who"),[...new Set(E.map(e=>e.name))].sort(it).map(n=>[n,n]),"Tutte le persone");
   opts($("f-reg-act"),ORDER.filter(a=>E.some(e=>e.act===a)).map(a=>[a,ACT[a]]),"Tutte le attività");
-  opts($("f-reg-sede"),[...new Set(E.map(e=>e.sede).filter(Boolean))].sort().map(s=>[s,s]),"Tutte le sedi");
+  opts($("f-reg-sede"),[...new Set(E.map(e=>e.sede).filter(Boolean))].sort().map(s=>[s,s]),"Tutti i luoghi");
   const w=$("f-reg-who").value,a=$("f-reg-act").value,sd=$("f-reg-sede").value,q=norm($("f-reg-q").value);
   const list=E.filter(e=>(!w||e.name===w)&&(!a||e.act===a)&&(!sd||e.sede===sd)&&(!q||norm([e.cliente,e.note,e.name].join(" ")).includes(q))).sort((x,y)=>(y.date+y.created).localeCompare(x.date+x.created));
   const tot=list.reduce((t,e)=>t+e.amount,0);
   $("reg-sub").textContent=closed?"Mese chiuso: eliminazione disabilitata":"";
-  $("t-reg").innerHTML=list.length?`<thead><tr><th>Data</th><th>Persona</th><th>Attività</th><th class="n">Q.tà</th><th>Cliente</th><th>Sede</th><th>Note</th><th class="n">Tariffa</th><th class="n">Importo</th><th></th></tr></thead><tbody>${list.map(e=>`<tr><td>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></td><td>${esc(e.name)}</td><td>${esc(ACT[e.act]||e.act)}</td><td class="n">${qn(e.qty)}</td><td>${esc(e.cliente||"")}</td><td>${esc(e.sede||"")}</td><td>${esc(e.note||"")}</td><td class="n">${eur(e.rate)}</td><td class="n">${eur(e.amount)}</td><td class="n">${closed?"":`<button type="button" class="${S.armed===e.id?"danger":"ghost"}" data-xdel="${esc(e.id)}">${S.armed===e.id?"Conferma":"Elimina"}</button>`}</td></tr>`).join("")}<tr class="tot"><td colspan="8">${list.length} registrazioni</td><td class="n">${eur(tot)}</td><td></td></tr></tbody>`
+  $("t-reg").innerHTML=list.length?`<thead><tr><th>Data</th><th>Persona</th><th>Attività</th><th class="n">Q.tà</th><th>Cliente</th><th>Luogo</th><th>Note</th><th class="n">Tariffa</th><th class="n">Importo</th><th></th></tr></thead><tbody>${list.map(e=>`<tr><td>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></td><td>${esc(e.name)}</td><td>${esc(ACT[e.act]||e.act)}</td><td class="n">${qn(e.qty)}</td><td>${esc(e.cliente||"")}</td><td>${esc(e.sede||"")}</td><td>${esc(e.note||"")}</td><td class="n">${eur(e.rate)}</td><td class="n">${eur(e.amount)}</td><td class="n">${closed?"":`<button type="button" class="${S.armed===e.id?"danger":"ghost"}" data-xdel="${esc(e.id)}">${S.armed===e.id?"Conferma":"Elimina"}</button>`}</td></tr>`).join("")}<tr class="tot"><td colspan="8">${list.length} registrazioni</td><td class="n">${eur(tot)}</td><td></td></tr></tbody>`
     :'<tbody><tr><td class="empty">Nessuna registrazione.</td></tr></tbody>';
 }
 ["f-reg-who","f-reg-act","f-reg-sede"].forEach(id=>$(id).onchange=renderReg);$("f-reg-q").oninput=renderReg;
