@@ -278,9 +278,9 @@ tr.sel td{background:var(--line)}
 <script>
 const $=id=>document.getElementById(id);
 const S={pin:"",month:"",d:null,tab:"home",who:{pt:"",pul:""},ptView:"cli",armed:null,open:new Set()};
-const ACT={Classi:"Ore classi",Ore:"Ore",PT:"PT",Coaching:"Coaching online",Schede:"Schede",Pulizia:"Pulizia",Individuale:"Lezione individuale"};
+const ACT={Classi:"Ore classi",Ore:"Ore",PT:"PT",Coaching:"Coaching online",Schede:"Schede",Pulizia:"Pulizia",Esterno:"Lavoro esterno",Individuale:"Lezione individuale"};
 const LI=["PT","Coaching","Individuale"],kind=a=>a==="PT"?"PT":a==="Coaching"?"Coaching":"Individuale";
-const ORDER=["Classi","Ore","PT","Coaching","Schede","Pulizia"];
+const ORDER=["Classi","Ore","PT","Coaching","Schede","Pulizia","Esterno"];
 const ROLE={Operativo:"Staff operativo","New entry":"New entry",Amministrativo:"Amministrativi e soci"};
 const TABS=[["home","Compensi"],["extra","Extra e fissi"],["pt","Lezioni individuali"],["pul","Pulizie"],["reg","Registro"]];
 async function run(fn,...args){
@@ -364,7 +364,7 @@ function render(){
 }
 function renderComp(){
   const sm=S.d.summary,max=Math.max(1,...sm.rows.map(p=>p.total));
-  const cols=ORDER.map(a=>[a,a==="Classi"?"Classi h":a==="Ore"?"Ore":a==="Pulizia"?"Pulizia h":ACT[a]]);
+  const cols=ORDER.map(a=>[a,a==="Classi"?"Classi h":a==="Ore"?"Ore":a==="Pulizia"?"Pulizia h":a==="Esterno"?"Esterne h":ACT[a]]);
   const c=v=>v?`<td class="n">${qn(v)}</td>`:'<td class="n zero">–</td>';
   let b="",role="";
   sm.rows.forEach(p=>{

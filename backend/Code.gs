@@ -1,8 +1,10 @@
 /***** EffeOre — registro attività staff Effestudio *****/
 const TZ = 'Europe/Rome';
-const SH = { staff: 'Staff', rates: 'Tariffe', log: 'Registro', cfg: 'Config', fixed: 'Voci fisse', extra: 'Voci extra', access: 'Accessi' };
-const ACT_ORDER = ['Classi', 'Ore', 'PT', 'Coaching', 'Schede', 'Pulizia'];
+const SH = { staff: 'Staff', rates: 'Tariffe', log: 'Registro', cfg: 'Config', fixed: 'Voci fisse', extra: 'Voci extra', access: 'Accessi', jobs: 'Lavori esterni' };
+const ACT_ORDER = ['Classi', 'Ore', 'PT', 'Coaching', 'Schede', 'Pulizia', 'Esterno'];
 const CLIENT_ACTS = ['PT', 'Coaching'];
+const EXT = 'Esterno'; // lavoro in esterna presso società terze (es. Tennis Solvay): ore pagate allo staff + da fatturare alla società
+const EXT_RATE = { 'New entry': 6, 'Operativo': 10, 'Amministrativo': 10 }; // €/h se non c'è una riga "Esterno" nella tab Tariffe
 const IND = 'Individuale'; // lezione individuale segnata dalle New entry: solo monitoraggio, compenso 0 (pagano le ore)
 
 function doGet() {
@@ -13,7 +15,7 @@ function doGet() {
 }
 
 /* ================= ingresso dati per la PWA ================= */
-const API_FN = ['api_boot', 'api_init', 'api_requestPin', 'api_login', 'api_me', 'api_logout', 'api_mine', 'api_add', 'api_delete', 'api_adminCheck', 'api_admin', 'api_adminDelete', 'api_setClosed', 'api_export', 'api_modulo', 'api_addExtra', 'api_deleteExtra', 'api_saveFixed', 'api_stopFixed'];
+const API_FN = ['api_boot', 'api_init', 'api_requestPin', 'api_login', 'api_me', 'api_logout', 'api_mine', 'api_add', 'api_delete', 'api_adminCheck', 'api_admin', 'api_adminDelete', 'api_setClosed', 'api_export', 'api_modulo', 'api_addExtra', 'api_deleteExtra', 'api_saveFixed', 'api_stopFixed', 'api_addJob', 'api_setJob'];
 
 function doPost(e) {
   let out;
@@ -156,7 +158,8 @@ function api_init() {
     rates: rates_(),
     sedi: sedi_(),
     today: today_(),
-    closed: closed_()
+    closed: closed_(),
+    jobs: jobs_().filter(j => j.active).map(j => j.name)
   };
 }
 
@@ -181,7 +184,7 @@ function mine_(staffId, month) {
   const entries = all.filter(e => e.staffId === staffId && e.month === month)
     .sort((a, b) => (b.date + b.created).localeCompare(a.date + a.created));
   const clients = {};
-  all.forEach(x => { if (x.staffId === staffId && x.cliente) clients[x.cliente] = 1; });
+  all.forEach(x => { if (x.staffId === staffId && x.cliente && x.act !== EXT) clients[x.cliente] = 1; });
   return { month: month, closed: closed_().indexOf(month) >= 0, entries: entries, clients: Object.keys(clients).sort((a, b) => a.localeCompare(b)) };
 }
 
@@ -207,7 +210,12 @@ function api_add(token, e) {
   }
   const sede = sedi_().indexOf(e.sede) >= 0 ? e.sede : '';
   const note = String(e.note || '').slice(0, 200);
-  const cliente = String(e.cliente || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  let cliente = String(e.cliente || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  if (rt.act === EXT) {
+    const job = jobs_().find(j => j.active && j.name.toLowerCase() === String(e.job || '').trim().toLowerCase());
+    if (!job) throw new Error('Scegli il lavoro in esterna.');
+    cliente = job.name;
+  }
   if (CLIENT_ACTS.indexOf(rt.act) >= 0 && !cliente) throw new Error(rt.act === 'PT' ? 'Scrivi il nome del cliente del PT.' : 'Scrivi nome e cognome del cliente del coaching online.');
   if (rt.act === 'Coaching' && log_().some(x => x.staffId === st.id && x.act === 'Coaching' && x.month === month && x.cliente.toLowerCase() === cliente.toLowerCase()))
     throw new Error('Coaching online di ' + cliente + ' già registrato per ' + monthLabel_(month) + '.');
@@ -264,6 +272,7 @@ function api_admin(pin, month) {
   return {
     month: month, closed: closed_().indexOf(month) >= 0, summary: sum, entries: entries,
     extras: extras_(month), fixed: fixedFor_(month),
+    jobs: jobs_().map(j => ({ name: j.name, company: j.company, active: j.active })), ext: extSummary_(entries),
     staff: staff_().filter(s => s.active).map(s => ({ id: s.id, name: s.name, role: s.role })),
     pt: Object.keys(pt).map(k => ({ id: k, name: pt[k].name, clients: Object.keys(pt[k].clients).sort((a, b) => a.localeCompare(b)).map(c => ({ name: c, n: pt[k].clients[c] })) }))
       .sort((a, b) => a.name.localeCompare(b.name)),
@@ -340,18 +349,18 @@ function api_export(pin, month) {
 
   // Riepilogo
   const r = out.getSheets()[0]; r.setName('Riepilogo');
-  const head = ['Nome', 'Ruolo', 'Ore classi', 'Ore', 'PT (n.)', 'Coaching online (n.)', 'Schede (n.)', 'Ore pulizia', 'Compenso attività €', 'Fisso mensile €', 'Extra / rettifiche €', 'Totale €'];
-  const rows = sum.rows.map(p => [p.name, p.role, p.q.Classi || 0, p.q.Ore || 0, p.q.PT || 0, p.q.Coaching || 0, p.q.Schede || 0, p.q.Pulizia || 0, p.activity, p.fixed, p.extra, null]);
+  const head = ['Nome', 'Ruolo', 'Ore classi', 'Ore', 'PT (n.)', 'Coaching online (n.)', 'Schede (n.)', 'Ore pulizia', 'Ore esterne', 'Compenso attività €', 'Fisso mensile €', 'Extra / rettifiche €', 'Totale €'];
+  const rows = sum.rows.map(p => [p.name, p.role, p.q.Classi || 0, p.q.Ore || 0, p.q.PT || 0, p.q.Coaching || 0, p.q.Schede || 0, p.q.Pulizia || 0, p.q.Esterno || 0, p.activity, p.fixed, p.extra, null]);
   r.getRange(1, 1).setValue('Compensi staff Effestudio Training Center SSD a RL — ' + label).setFontWeight('bold').setFontSize(13);
   r.getRange(3, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#14263B').setFontColor('#FFFFFF');
   if (rows.length) {
     r.getRange(4, 1, rows.length, head.length).setValues(rows);
-    r.getRange(4, 12, rows.length, 1).setFormulas(rows.map((_, i) => ['=I' + (i + 4) + '+J' + (i + 4) + '+K' + (i + 4)]));
+    r.getRange(4, 13, rows.length, 1).setFormulas(rows.map((_, i) => ['=J' + (i + 4) + '+K' + (i + 4) + '+L' + (i + 4)]));
     const t = rows.length + 4;
     r.getRange(t, 1).setValue('Totale').setFontWeight('bold');
-    ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'].forEach(c => r.getRange(c + t).setFormula('=SUM(' + c + '4:' + c + (t - 1) + ')').setFontWeight('bold'));
-    r.getRange(4, 3, rows.length + 1, 6).setNumberFormat('0.##');
-    r.getRange(4, 9, rows.length + 1, 4).setNumberFormat('#,##0.00 €');
+    ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'].forEach(c => r.getRange(c + t).setFormula('=SUM(' + c + '4:' + c + (t - 1) + ')').setFontWeight('bold'));
+    r.getRange(4, 3, rows.length + 1, 7).setNumberFormat('0.##');
+    r.getRange(4, 10, rows.length + 1, 4).setNumberFormat('#,##0.00 €');
   }
   r.getRange(rows.length + 6, 1).setValue('Tariffe nette: ' + rates_().map(x => x.role + ' ' + x.act + ' ' + x.rate + ' €/' + x.unit).join(' · ')).setFontColor('#5E6B7A');
   r.setFrozenRows(3); r.autoResizeColumns(1, head.length);
@@ -367,6 +376,23 @@ function api_export(pin, month) {
     d.getRange(2, 7, entries.length, 2).setNumberFormat('#,##0.00 €');
   }
   d.setFrozenRows(1); d.autoResizeColumns(1, dh.length);
+
+  // Lavori esterni da fatturare alle società terze
+  const ext = extSummary_(entries);
+  if (ext.length) {
+    const x = out.insertSheet('Lavori esterni');
+    const xh = ['Lavoro esterno', 'Società da fatturare', 'Persona', 'Ore', 'Compenso staff €'];
+    x.getRange(1, 1, 1, xh.length).setValues([xh]).setFontWeight('bold').setBackground('#14263B').setFontColor('#FFFFFF');
+    const xr = [];
+    ext.forEach(j => {
+      j.people.forEach(p => xr.push([j.name, j.company, p.name, p.hours, p.amount]));
+      xr.push(['Totale ' + j.name, j.company, '', j.hours, j.amount]);
+    });
+    x.getRange(2, 1, xr.length, xh.length).setValues(xr);
+    x.getRange(2, 5, xr.length, 1).setNumberFormat('#,##0.00 €');
+    xr.forEach((row, i) => { if (String(row[0]).indexOf('Totale ') === 0) x.getRange(i + 2, 1, 1, xh.length).setFontWeight('bold'); });
+    x.setFrozenRows(1); x.autoResizeColumns(1, xh.length);
+  }
 
   const file = DriveApp.getFileById(out.getId());
   file.moveTo(exportFolder_());
@@ -557,7 +583,7 @@ function message_(label, sum) {
     const p = Math.abs(v).toFixed(2).split('.');
     return (v < 0 ? '-' : '') + p[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + p[1] + ' €';
   };
-  const unit = { Classi: 'h classi', Ore: 'h', PT: 'PT', Coaching: 'coaching online', Schede: 'schede', Pulizia: 'h pulizia' };
+  const unit = { Classi: 'h classi', Ore: 'h', PT: 'PT', Coaching: 'coaching online', Schede: 'schede', Pulizia: 'h pulizia', Esterno: 'h in esterna' };
   const lines = sum.rows.map(p => {
     const det = ACT_ORDER.filter(a => p.q[a]).map(a => String(p.q[a]).replace('.', ',') + ' ' + unit[a]);
     if (p.fixed) det.push('fisso ' + eur(p.fixed));
@@ -616,7 +642,76 @@ function staff_() {
 function rates_() {
   return data_(SH.rates).filter(r => String(r[0]).trim() && String(r[1]).trim()).map(r => ({
     role: String(r[0]).trim(), act: String(r[1]).trim(), unit: String(r[2]).trim().toLowerCase() || 'ora', rate: num_(r[3])
-  }));
+  })).concat(Object.keys(EXT_RATE).map(role => ({ role: role, act: EXT, unit: 'ora', rate: EXT_RATE[role] })))
+    .filter((r, i, all) => r.act !== EXT || all.findIndex(x => x.role === r.role && x.act === EXT) === i);
+}
+
+/* ================= lavori in esterna (società terze) ================= */
+
+function jobsSheet_() {
+  let sh = ss_().getSheetByName(SH.jobs);
+  if (!sh) {
+    sh = ss_().insertSheet(SH.jobs);
+    sh.getRange(1, 1, 1, 4).setValues([['Lavoro esterno', 'Società da fatturare', 'Attivo', 'Creato']]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+    sh.getRange(2, 1, 2, 4).setNumberFormat('@').setValues([['Tennis Solvay', '', 'SI', today_()], ['Saline Calcio', '', 'SI', today_()]]);
+  }
+  return sh;
+}
+
+function jobs_() {
+  if (MEMO.jobs) return MEMO.jobs;
+  const sh = jobsSheet_(), n = sh.getLastRow();
+  if (n < 2) return (MEMO.jobs = []);
+  return (MEMO.jobs = sh.getRange(2, 1, n - 1, 3).getDisplayValues().map((r, i) => ({
+    row: i + 2, name: String(r[0]).replace(/\s+/g, ' ').trim(), company: String(r[1]).trim(),
+    active: !/^(no|false|0)$/i.test(String(r[2]).trim())
+  })).filter(j => j.name).sort((a, b) => a.name.localeCompare(b.name)));
+}
+
+function api_addJob(pin, x, month) {
+  auth_(pin); checkMonth_(month);
+  const name = String(x && x.name || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+  if (!name) throw new Error('Scrivi il nome del lavoro in esterna.');
+  const company = String(x && x.company || '').replace(/\s+/g, ' ').trim().slice(0, 100);
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const old = jobs_().find(j => j.name.toLowerCase() === name.toLowerCase());
+    const sh = jobsSheet_();
+    if (old) {
+      if (old.active && (!company || company === old.company)) throw new Error('"' + old.name + '" esiste già.');
+      sh.getRange(old.row, 2, 1, 2).setNumberFormat('@').setValues([[company || old.company, 'SI']]);
+    } else {
+      sh.getRange(sh.getLastRow() + 1, 1, 1, 4).setNumberFormat('@').setValues([[name, company, 'SI', today_()]]);
+    }
+    MEMO.jobs = null;
+  } finally { lock.releaseLock(); }
+  return api_admin(pin, month);
+}
+
+function api_setJob(pin, name, active, month) {
+  auth_(pin); checkMonth_(month);
+  const job = jobs_().find(j => j.name === String(name || ''));
+  if (!job) throw new Error('Lavoro non trovato: aggiorna la pagina.');
+  jobsSheet_().getRange(job.row, 3).setNumberFormat('@').setValue(active ? 'SI' : 'NO');
+  MEMO.jobs = null;
+  return api_admin(pin, month);
+}
+
+/* ore in esterna del mese raggruppate per lavoro e persona (per fatturare alle società terze) */
+function extSummary_(entries) {
+  const jobs = jobs_(), by = {};
+  entries.filter(e => e.act === EXT).forEach(e => {
+    const k = e.cliente || '(non indicato)';
+    const j = by[k] = by[k] || { name: k, company: (jobs.find(x => x.name === k) || {}).company || '', hours: 0, amount: 0, p: {} };
+    j.hours = round_(j.hours + e.qty); j.amount = round_(j.amount + e.amount);
+    const p = j.p[e.staffId] = j.p[e.staffId] || { name: e.name, hours: 0, amount: 0 };
+    p.hours = round_(p.hours + e.qty); p.amount = round_(p.amount + e.amount);
+  });
+  return Object.keys(by).sort((a, b) => a.localeCompare(b)).map(k => {
+    const j = by[k];
+    return { name: j.name, company: j.company, hours: j.hours, amount: j.amount, people: Object.keys(j.p).map(i => j.p[i]).sort((a, b) => a.name.localeCompare(b.name)) };
+  });
 }
 
 function log_() {
@@ -686,6 +781,7 @@ function monthLabel_(m) {
 /* Esegui una volta dall'editor per autorizzare e controllare il foglio */
 function setup() {
   [SH.staff, SH.rates, SH.log, SH.cfg, SH.fixed, SH.extra, SH.access].forEach(sheet_);
+  jobsSheet_();
   exportFolder_();
   Logger.log('Pronto. Staff attivi: ' + staff_().filter(s => s.active).length + ' · Tariffe: ' + rates_().length);
 }

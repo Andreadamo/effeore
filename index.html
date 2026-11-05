@@ -185,6 +185,7 @@ img{max-width:100%}
     </div>
     <label id="a-cli-wrap" hidden><span id="a-cli-l">Cliente del PT</span><input id="a-cli" list="cli-list" maxlength="80" placeholder="Nome e cognome del cliente" autocomplete="off"></label>
     <datalist id="cli-list"></datalist>
+    <label id="a-job-wrap" hidden>Lavoro in esterna<select id="a-job"></select></label>
     <div class="group" id="a-ind-wrap" hidden>
       <label for="a-ind">Lezioni individuali fatte (facoltativo)</label>
       <div class="indrow"><input id="a-ind" list="cli-list" maxlength="80" placeholder="Nome e cognome del cliente" autocomplete="off" enterkeyhint="done"><button type="button" class="ghost" id="b-ind">Aggiungi</button></div>
@@ -192,7 +193,7 @@ img{max-width:100%}
       <div class="ind-help">Un nome = una lezione. Le ore si segnano sopra come sempre, il compenso non cambia. Ore già segnate? Metti 0 ore e aggiungi solo i clienti.</div>
     </div>
     <div class="row2">
-      <label>Sede<select id="a-sede"></select></label>
+      <label id="a-sede-wrap">Sede<select id="a-sede"></select></label>
       <label>Note<input id="a-note" maxlength="200" placeholder="facoltativo"></label>
     </div>
     <div class="est" id="a-est"></div>
@@ -259,6 +260,15 @@ img{max-width:100%}
     <div class="list" id="x-fixedl"></div>
   </div>
   <div class="card">
+    <div class="card-h"><h2>Lavori in esterna da fatturare</h2><span class="sub">Ore del mese per società terza</span></div>
+    <div class="list" id="x-ext"></div>
+    <form id="f-job" class="group" autocomplete="off">
+      <div class="row2"><label>Nuovo lavoro esterno<input id="j-name" maxlength="60" placeholder="es. Tennis Solvay" required></label><label>Società da fatturare<input id="j-company" maxlength="100" placeholder="facoltativo"></label></div>
+      <button class="primary" id="b-job">Aggiungi lavoro</button>
+    </form>
+    <div class="list" id="x-jobs"></div>
+  </div>
+  <div class="card">
     <h2>PT, coaching e lezioni individuali per cliente</h2>
     <div class="list" id="x-pt"></div>
   </div>
@@ -285,7 +295,8 @@ const S={init:null,me:null,act:null,month:null,mine:null,pin:"",xmonth:null,admi
 const ROLE_CLASS={"Operativo":"op","New entry":"ne","Amministrativo":"ad"};
 const ROLE_LABEL={"Operativo":"Staff operativo","New entry":"New entry","Amministrativo":"Amministrazione e soci"};
 const UNIT={ora:["ora","ore"],lezione:["lezione","lezioni"],scheda:["scheda","schede"],cliente:["cliente","clienti"],mese:["mese","mesi"]};
-const ACT_LABEL={Classi:"Ore classi",Ore:"Ore",PT:"PT",Coaching:"Coaching online",Schede:"Schede",Pulizia:"Pulizia",Individuale:"Lezione individuale"};
+const ACT_LABEL={Classi:"Ore classi",Ore:"Ore",PT:"PT",Coaching:"Coaching online",Schede:"Schede",Pulizia:"Pulizia",Esterno:"Lavoro esterno",Individuale:"Lezione individuale"};
+const EXT="Esterno";
 const CLIENT_ACTS=["PT","Coaching"];
 const IND="Individuale";
 
@@ -357,7 +368,8 @@ function setMe(me){
   $("a-note").value="";
   renderActs();S.month=S.init.today.slice(0,7);show("main");if(!S.skipMine)loadMine();
 }
-function myRates(){return S.init.rates.filter(r=>r.role===(S.me&&S.me.role))}
+function myJobs(){return (S.init&&S.init.jobs)||[]}
+function myRates(){return S.init.rates.filter(r=>r.role===(S.me&&S.me.role)&&(r.act!==EXT||myJobs().length))}
 function curRate(){return myRates().find(r=>r.act===S.act)}
 
 /* ---------- form ---------- */
@@ -370,6 +382,8 @@ function renderActs(){
   $("a-cli-l").textContent=S.act==="Coaching"?"Nome e cognome del cliente (coaching online, 1 volta al mese)":"Cliente del PT";
   if(S.act==="Coaching")$("a-qty").value="1";
   $("a-ind-wrap").hidden=S.act!=="Ore";
+  $("a-job-wrap").hidden=S.act!==EXT;$("a-sede-wrap").hidden=S.act===EXT;
+  if(S.act===EXT){const jv=$("a-job").value,lj=load("eo-job");$("a-job").innerHTML='<option value="">Scegli…</option>'+myJobs().map(j=>`<option>${esc(j)}</option>`).join("");$("a-job").value=myJobs().includes(jv)?jv:(myJobs().includes(lj)?lj:"")}
   if(S.act!=="Ore"){S.ind=[];$("a-ind").value=""}
   renderInd();updUnit();
 }
@@ -404,7 +418,10 @@ $("f-add").addEventListener("submit",async e=>{
   const ind=S.act==="Ore"?S.ind.slice():[];
   const q=qty();if(!(q>0)&&!ind.length)return err(S.act==="Ore"?"Inserisci le ore oppure aggiungi almeno una lezione individuale.":"Inserisci una quantità maggiore di zero.");
   const b=$("b-save");b.disabled=true;b.textContent="Salvataggio…";
-  const data={date:$("a-date").value,act:S.act,qty:q,sede:$("a-sede").value,note:$("a-note").value.trim(),cliente:$("a-cli").value.trim(),individuali:ind};
+  const isExt=S.act===EXT,job=isExt?$("a-job").value:"";
+  if(isExt&&!job){b.disabled=false;b.textContent="Registra";$("a-job").focus();return err("Scegli il lavoro in esterna.")}
+  const data={date:$("a-date").value,act:S.act,qty:q,sede:isExt?"":$("a-sede").value,note:$("a-note").value.trim(),cliente:isExt?job:$("a-cli").value.trim(),job,individuali:ind};
+  if(isExt)store("eo-job",job);
   if(CLIENT_ACTS.includes(data.act)&&!data.cliente){b.disabled=false;b.textContent="Registra";$("a-cli").focus();return err(data.act==="PT"?"Scrivi il nome del cliente del PT.":"Scrivi nome e cognome del cliente del coaching online.")}
   const r0=curRate(),m=data.date.slice(0,7),prev=S.mine;
   const now=new Date().toISOString(),tmps=[];
@@ -414,7 +431,7 @@ $("f-add").addEventListener("submit",async e=>{
   S.month=m;S.mine=Object.assign({},base,{entries:tmps.concat(base.entries||[]).sort((a,b)=>(b.date+b.created).localeCompare(a.date+a.created))});renderMine();
   $("a-note").value="";$("a-cli").value="";S.ind=[];renderInd();b.disabled=false;b.textContent="Registra";
   toast("Registrato: "+[q>0?`${ACT_LABEL[data.act]||data.act} ${qn(q)} ${unitWord(r0.unit,q)}`:"",ind.length?`${ind.length} ${ind.length===1?"lezione individuale":"lezioni individuali"}`:""].filter(Boolean).join(" + "));
-  if(S.act==="Ore"&&!(q>0))$("a-qty").value="1";updUnit();store("eo-sede",data.sede);
+  if(S.act==="Ore"&&!(q>0))$("a-qty").value="1";updUnit();if(!isExt)store("eo-sede",data.sede);
   try{const d=await run("api_add",S.token,data);cacheMine(d);if(S.month===d.month){S.mine=d;renderMine()}}
   catch(x){if(S.month===m){S.mine=base;renderMine()}if(ind.length&&!S.ind.length){S.ind=ind;renderInd();updUnit()}if(!sessionLost(x))err("Non salvato: "+String(x&&x.message||x).replace(/^Error:\s*/,""))}
 });
@@ -437,7 +454,7 @@ function renderMine(){
   $("m-next").disabled=d.month>=S.init.today.slice(0,7);
   const by={};let tot=0;
   d.entries.forEach(e=>{by[e.act]=by[e.act]||{q:0,u:e.unit};by[e.act].q+=e.qty;tot+=e.amount});
-  const order=["Classi","Ore","PT","Coaching","Schede","Pulizia",IND];
+  const order=["Classi","Ore","PT","Coaching","Schede","Pulizia",EXT,IND];
   $("m-tiles").innerHTML=order.filter(a=>by[a]).map(a=>`<div class="tile"><b>${qn(by[a].q)}</b><span>${esc(a===IND?"Lezioni individuali":ACT_LABEL[a])}${by[a].u==="ora"&&a!=="Classi"&&a!=="Ore"?" (ore)":""}</span></div>`).join("")+
     `<div class="tile tot"><b>${eur(tot)}</b><span>Totale mese</span></div>`;
   if(!d.entries.length){$("m-list").innerHTML='<div class="empty">Nessuna registrazione in questo mese.</div>';return}
@@ -482,7 +499,7 @@ function renderAdmin(){
   const nP=sm.rows.length,nE=d.entries.length;
   $("x-upd").textContent=d.updated?"aggiornato alle "+d.updated:"";
   $("x-tiles").innerHTML=`<div class="tile"><b>${nE}</b><span>Registrazioni</span></div><div class="tile"><b>${eur(sm.tot.activity)}</b><span>Attività</span></div><div class="tile"><b>${eur(sm.tot.fixed)}</b><span>Fissi</span></div><div class="tile"><b>${eur(sm.tot.extra||0)}</b><span>Extra</span></div><div class="tile tot"><b>${eur(sm.tot.total)}</b><span>Totale mese</span></div>`;
-  const cols=[["Classi","Ore classi"],["Ore","Ore"],["PT","PT"],["Coaching","Coaching"],["Schede","Schede"],["Pulizia","Ore pulizia"]];
+  const cols=[["Classi","Ore classi"],["Ore","Ore"],["PT","PT"],["Coaching","Coaching"],["Schede","Schede"],["Pulizia","Ore pulizia"],["Esterno","Ore esterne"]];
   const cell=v=>v?`<td class="n">${qn(v)}</td>`:`<td class="n zero">–</td>`;
   let body="",role="";
   sm.rows.forEach(p=>{
@@ -506,7 +523,7 @@ function renderAdminExtra(){
   sel.value=cur;
   $("f-extra").hidden=d.closed;
   $("x-extras").innerHTML=(d.extras||[]).length?d.extras.map(x=>`<div class="item"><div class="l"><b>${esc(x.name)}</b><small>${esc(x.desc)}</small></div><div class="r"><span>${eur(x.amount)}</span>${d.closed?"":`<button type="button" class="${S.armed===x.id?"danger":"ghost"}" data-xex="${esc(x.id)}">${S.armed===x.id?"Conferma":"Elimina"}</button>`}</div></div>`).join(""):'<div class="empty">Nessuna voce extra in questo mese.</div>';
-  renderAdminFixed();
+  renderAdminFixed();renderAdminExt();
   $("x-pt").innerHTML=(d.pt||[]).length?d.pt.map(t=>`<div class="day">${esc(t.name)} · ${t.clients.reduce((a,c)=>a+c.n,0)}</div>`+t.clients.map(c=>`<div class="item"><div class="l"><b>${esc(c.name)}</b></div><div class="r"><span>${qn(c.n)}</span></div></div>`).join("")).join(""):'<div class="empty">Nessun PT, coaching o lezione individuale registrati in questo mese.</div>';
 }
 $("f-extra").addEventListener("submit",async e=>{
@@ -528,6 +545,20 @@ $("f-fixed").addEventListener("submit",async e=>{
   e.preventDefault();const b=$("b-fixed");b.disabled=true;
   const x={row:S.fxEdit||null,from:S.xmonth,staffId:$("fx-staff").value,desc:$("fx-desc").value.trim(),amount:Number(String($("fx-amount").value).replace(/\s/g,"").replace(",","."))};
   try{S.admin=await run("api_saveFixed",S.pin,x);S.fxEdit=null;$("fx-desc").value="";$("fx-amount").value="";renderAdmin();toast(x.row?"Fisso aggiornato":"Fisso aggiunto")}catch(z){adminErr(z)}finally{b.disabled=false}
+});
+/* lavori in esterna: ore del mese per società + elenco lavori selezionabili dallo staff */
+function renderAdminExt(){
+  const d=S.admin,ext=d.ext||[],jobs=d.jobs||[];
+  $("x-ext").innerHTML=ext.length?ext.map(j=>`<div class="day">${esc(j.name)}${j.company?" · "+esc(j.company):""} · ${qn(j.hours)} h · costo staff ${eur(j.amount)}</div>`+j.people.map(p=>`<div class="item"><div class="l"><b>${esc(p.name)}</b></div><div class="r"><span>${qn(p.hours)} h · ${eur(p.amount)}</span></div></div>`).join("")).join(""):'<div class="empty">Nessuna ora in esterna in questo mese.</div>';
+  $("x-jobs").innerHTML=jobs.length?'<div class="day">Lavori selezionabili dallo staff</div>'+jobs.map(j=>`<div class="item"><div class="l"><b>${esc(j.name)}</b><small>${esc(j.company||"Società da fatturare non indicata")}${j.active?"":" · disattivato"}</small></div><div class="r"><button type="button" class="ghost" data-job="${esc(j.name)}" data-on="${j.active?0:1}">${j.active?"Disattiva":"Riattiva"}</button></div></div>`).join(""):'<div class="empty">Nessun lavoro esterno.</div>';
+}
+$("f-job").addEventListener("submit",async e=>{
+  e.preventDefault();const b=$("b-job");b.disabled=true;
+  try{S.admin=await run("api_addJob",S.pin,{name:$("j-name").value.trim(),company:$("j-company").value.trim()},S.xmonth);$("j-name").value="";$("j-company").value="";renderAdmin();toast("Lavoro aggiunto: lo staff lo vede al prossimo avvio dell'app")}catch(z){adminErr(z)}finally{b.disabled=false}
+});
+document.addEventListener("click",async e=>{
+  const j=e.target.closest("[data-job]");if(!j)return;j.disabled=true;
+  try{S.admin=await run("api_setJob",S.pin,j.dataset.job,j.dataset.on==="1",S.xmonth);renderAdmin();toast(j.dataset.on==="1"?"Lavoro riattivato":"Lavoro disattivato")}catch(z){adminErr(z);renderAdmin()}
 });
 $("b-fixed-x").onclick=()=>{S.fxEdit=null;$("fx-desc").value="";$("fx-amount").value="";renderAdminFixed()};
 document.addEventListener("click",async e=>{
@@ -652,7 +683,7 @@ async function boot(){
   try{
     const r=await run("api_boot",S.token,iso.slice(0,7));const d=r.init;
     store("eo-init",JSON.stringify(d));
-    const changed=!cInit||JSON.stringify(cInit.rates)!==JSON.stringify(d.rates);S.init=d;
+    const changed=!cInit||JSON.stringify(cInit.rates)!==JSON.stringify(d.rates)||JSON.stringify(cInit.jobs||[])!==JSON.stringify(d.jobs||[]);S.init=d;
     if(!S.token||!r.me){if(!cInit||!S.token)renderPick();return}
     store("eo-meobj",JSON.stringify(r.me));cacheMine(r.mine);
     if(!cMe||changed||cMe.role!==r.me.role){S.skipMine=true;setMe(r.me);S.skipMine=false}else S.me=r.me;
