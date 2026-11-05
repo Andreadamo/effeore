@@ -815,6 +815,39 @@ function setup() {
   Logger.log('Pronto. Staff attivi: ' + staff_().filter(s => s.active).length + ' · Tariffe: ' + rates_().length);
 }
 
+/* ---------- resoconto mensile luoghi esterni (email agli amministratori il 1° del mese, mese precedente) ---------- */
+function reportLuoghi(month) {
+  month = /^\d{4}-\d{2}$/.test(String(month)) ? month : mAdd_(today_().slice(0, 7), -1);
+  const entries = log_().filter(e => e.month === month), ext = extSummary_(entries), label = monthLabel_(month);
+  const noPlace = entries.filter(e => !e.sede && e.unit === 'ora');
+  const eur = v => v.toFixed(2).replace('.', ',') + ' €';
+  const h = v => String(round_(v)).replace('.', ',');
+  let txt = 'Resoconto luoghi esterni - ' + label + '\n\n';
+  if (!ext.length) txt += 'Nessuna attività registrata nei luoghi esterni.\n';
+  ext.forEach(j => {
+    txt += '■ ' + j.name + (j.company ? ' (' + j.company + ')' : '') + ': ' + h(j.hours) + ' ore · costo staff ' + eur(j.amount) + '\n';
+    j.people.forEach(p => { txt += '   - ' + p.name + ': ' + p.det + ' · ' + eur(p.amount) + '\n'; });
+    txt += '\n';
+  });
+  if (noPlace.length) {
+    const by = {};
+    noPlace.forEach(e => by[e.name] = round_((by[e.name] || 0) + e.qty));
+    txt += 'Attenzione, ore senza luogo indicato (da verificare):\n' + Object.keys(by).sort().map(n => '   - ' + n + ': ' + h(by[n]) + ' h').join('\n') + '\n\n';
+  }
+  txt += 'Dettaglio completo: dashboard EffeOre, scheda Luoghi → https://andreadamo.github.io/effeore/dashboard.html';
+  const staff = staff_(), to = adminIds_().map(id => (staff.find(s => s.id === id) || {}).email).filter(String).join(',');
+  if (to) GmailApp.sendEmail(to, 'EffeOre: ore luoghi esterni da fatturare - ' + label, txt, { name: 'Effestudio Training Center' });
+  return txt;
+}
+
+/* Esegui una volta dall'editor: attiva l'invio automatico il 1° di ogni mese alle 9 */
+function setupReportLuoghi() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'reportLuoghiAuto').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('reportLuoghiAuto').timeBased().onMonthDay(1).atHour(9).inTimezone(TZ).create();
+  Logger.log('Resoconto luoghi esterni attivo: il 1° di ogni mese alle 9.');
+}
+function reportLuoghiAuto() { reportLuoghi(); }
+
 /* ---------- keep-warm: evita avvio lento dell'app ---------- */
 function keepWarm() {
   try {

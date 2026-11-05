@@ -230,6 +230,15 @@ tr.sel td{background:var(--line)}
       </section>
     </div>
 
+    <!-- LUOGHI -->
+    <div class="pane" id="p-luo" hidden>
+      <section class="card">
+        <div class="card-h"><h2>Ore per luogo</h2><span class="sub">Luoghi esterni: ore da fatturare alle società a fine mese</span></div>
+        <div class="chips" id="luo-chips" style="margin-bottom:10px"></div>
+        <div id="luo-body"></div>
+      </section>
+    </div>
+
     <!-- LEZIONI INDIVIDUALI -->
     <div class="pane" id="p-pt" hidden>
       <section class="card">
@@ -282,7 +291,7 @@ const ACT={Classi:"Ore classi",Ore:"Ore",PT:"PT",Coaching:"Coaching online",Sche
 const LI=["PT","Coaching","Individuale"],kind=a=>a==="PT"?"PT":a==="Coaching"?"Coaching":"Individuale";
 const ORDER=["Classi","Ore","PT","Coaching","Schede","Pulizia"];
 const ROLE={Operativo:"Staff operativo","New entry":"New entry",Amministrativo:"Amministrativi e soci"};
-const TABS=[["home","Compensi"],["extra","Extra e fissi"],["pt","Lezioni individuali"],["pul","Pulizie"],["reg","Registro"]];
+const TABS=[["home","Compensi"],["extra","Extra e fissi"],["luo","Luoghi"],["pt","Lezioni individuali"],["pul","Pulizie"],["reg","Registro"]];
 async function run(fn,...args){
   let r;try{r=await fetch(window.EFFEORE_API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({fn,args}),cache:"no-store"})}
   catch(e){throw new Error("Connessione non riuscita. Riprova.")}
@@ -344,7 +353,7 @@ function setTab(t){
   TABS.forEach(([k])=>$("p-"+k).hidden=k!==t);renderTabs();window.scrollTo(0,0);
 }
 function renderTabs(){
-  const d=S.d,n={extra:d?(d.extras||[]).length:0,pt:d?d.entries.filter(e=>LI.includes(e.act)).length:0,pul:d?d.entries.filter(e=>e.act==="Pulizia").length:0,reg:d?d.entries.length:0};
+  const d=S.d,n={extra:d?(d.extras||[]).length:0,pt:d?d.entries.filter(e=>LI.includes(e.act)).length:0,pul:d?d.entries.filter(e=>e.act==="Pulizia").length:0,luo:d?d.entries.filter(e=>(d.places||[]).some(p=>p.name===e.sede)).length:0,reg:d?d.entries.length:0};
   $("tabbar").innerHTML=TABS.map(([k,l])=>`<button type="button" data-t="${k}" class="${k===S.tab?"on":""}">${l}${n[k]!=null&&k!=="home"?`<i>${n[k]}</i>`:""}</button>`).join("");
 }
 $("tabbar").onclick=e=>{const b=e.target.closest("[data-t]");if(b)setTab(b.dataset.t)};
@@ -360,7 +369,7 @@ function render(){
     ["tot",eur(sm.tot.total),"Totale da pagare"],["",eur(sm.tot.activity),"Attività registrate"],["",eur(sm.tot.fixed),"Fissi mensili"],["",eur(sm.tot.extra||0),"Extra / rettifiche"],
     ["",qn(sum("PT")),"PT fatti · "+eur(sum("PT",1))],["",qn(sum("Coaching")),"Coaching online"],["",qn(sum("Pulizia"))+" h","Pulizie · "+eur(sum("Pulizia",1))],["",qn(sum("Classi"))+" h","Ore classi"]
   ].map(k=>`<div class="kpi ${k[0]}"><b>${k[1]}</b><span>${k[2]}</span></div>`).join("");
-  renderComp();renderExtra();renderPT();renderPul();renderReg();renderTabs();
+  renderComp();renderExtra();renderLuo();renderPT();renderPul();renderReg();renderTabs();
 }
 function renderComp(){
   const sm=S.d.summary,max=Math.max(1,...sm.rows.map(p=>p.total));
@@ -481,6 +490,27 @@ function renderPul(){
     :'<tbody><tr><td class="empty">Nessuna pulizia.</td></tr></tbody>';
 }
 
+/* luoghi: filtro per luogo, ore totali e dettaglio per persona (base per fatturare ai luoghi esterni) */
+function renderLuo(){
+  const E=S.d.entries,PL=S.d.places||[],isExt=n=>PL.some(p=>p.name===n);
+  const NONE="(senza luogo)",EXT="__ext";
+  const names=[...new Set(E.map(e=>e.sede||NONE))].sort((a,b)=>(isExt(b)-isExt(a))||(a===NONE)-(b===NONE)||a.localeCompare(b,"it"));
+  PL.forEach(p=>{if(!names.includes(p.name))names.push(p.name)});
+  const of=v=>v===EXT?E.filter(e=>isExt(e.sede)):E.filter(e=>(e.sede||NONE)===v);
+  const hrs=L=>L.filter(e=>e.unit==="ora").reduce((t,e)=>t+e.qty,0);
+  if(S.luo==null||(S.luo!==EXT&&!names.includes(S.luo)))S.luo=EXT;
+  chips($("luo-chips"),[[EXT,"Tutti i luoghi esterni",hrs(of(EXT))],...names.map(n=>[n,(isExt(n)?"↗ ":"")+n,hrs(of(n))])],S.luo,v=>{S.luo=v;renderLuo()});
+  const groups=(S.luo===EXT?names.filter(isExt):[S.luo]).map(n=>[n,of(n)]);
+  $("luo-body").innerHTML=groups.map(([n,L])=>{
+    const p=PL.find(x=>x.name===n),by={};
+    L.forEach(e=>{const k=e.name;by[k]=by[k]||{h:0,eur:0,acts:{}};if(e.unit==="ora")by[k].h+=e.qty;by[k].eur+=e.amount;const a=ACT[e.act]||e.act;by[k].acts[a]=(by[k].acts[a]||0)+e.qty});
+    const ppl=Object.keys(by).sort(it),H=hrs(L),T=L.reduce((t,e)=>t+e.amount,0);
+    const head=`<div class="th"><h3>${esc(n)}</h3><span>${p?esc(p.company||"società da fatturare non indicata")+" · ":""}<b>${qn(H)} ore</b> · costo staff ${eur(T)}</span></div>`;
+    if(!L.length)return `<section class="tsec">${head}<div class="empty">Nessuna ora in questo mese.</div></section>`;
+    return `<section class="tsec">${head}<div class="tbl-wrap"><table><thead><tr><th>Persona</th><th>Attività</th><th class="n">Ore</th><th class="n">Costo staff</th></tr></thead><tbody>${ppl.map(k=>`<tr><td><b>${esc(k)}</b></td><td>${esc(Object.entries(by[k].acts).map(([a,q])=>a+" "+qn(q)).join(" · "))}</td><td class="n">${qn(by[k].h)}</td><td class="n">${eur(by[k].eur)}</td></tr>`).join("")}<tr class="tot"><td colspan="2">Totale ${esc(n)}</td><td class="n">${qn(H)}</td><td class="n">${eur(T)}</td></tr></tbody></table></div></section>`;
+  }).join("")||'<div class="empty">Nessun luogo esterno configurato.</div>';
+}
+
 /* registro (con eliminazione, come in EffeOre) */
 function renderReg(){
   const E=S.d.entries,closed=S.d.closed;
@@ -491,7 +521,7 @@ function renderReg(){
   const list=E.filter(e=>(!w||e.name===w)&&(!a||e.act===a)&&(!sd||e.sede===sd)&&(!q||norm([e.cliente,e.note,e.name].join(" ")).includes(q))).sort((x,y)=>(y.date+y.created).localeCompare(x.date+x.created));
   const tot=list.reduce((t,e)=>t+e.amount,0);
   $("reg-sub").textContent=closed?"Mese chiuso: eliminazione disabilitata":"";
-  $("t-reg").innerHTML=list.length?`<thead><tr><th>Data</th><th>Persona</th><th>Attività</th><th class="n">Q.tà</th><th>Cliente</th><th>Luogo</th><th>Note</th><th class="n">Tariffa</th><th class="n">Importo</th><th></th></tr></thead><tbody>${list.map(e=>`<tr><td>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></td><td>${esc(e.name)}</td><td>${esc(ACT[e.act]||e.act)}</td><td class="n">${qn(e.qty)}</td><td>${esc(e.cliente||"")}</td><td>${esc(e.sede||"")}</td><td>${esc(e.note||"")}</td><td class="n">${eur(e.rate)}</td><td class="n">${eur(e.amount)}</td><td class="n">${closed?"":`<button type="button" class="${S.armed===e.id?"danger":"ghost"}" data-xdel="${esc(e.id)}">${S.armed===e.id?"Conferma":"Elimina"}</button>`}</td></tr>`).join("")}<tr class="tot"><td colspan="8">${list.length} registrazioni</td><td class="n">${eur(tot)}</td><td></td></tr></tbody>`
+  $("t-reg").innerHTML=list.length?`<thead><tr><th>Data</th><th>Persona</th><th>Attività</th><th class="n">Q.tà</th><th>Cliente</th><th>Luogo</th><th>Note</th><th class="n">Tariffa</th><th class="n">Importo</th><th></th></tr></thead><tbody>${list.map(e=>`<tr><td>${dmy(e.date)} <span class="muted">${wd(e.date)}</span></td><td>${esc(e.name)}</td><td>${esc(ACT[e.act]||e.act)}</td><td class="n">${qn(e.qty)}</td><td>${esc(e.cliente||"")}</td><td>${esc(e.sede||"")}</td><td>${esc(e.note||"")}</td><td class="n">${eur(e.rate)}</td><td class="n">${eur(e.amount)}</td><td class="n">${closed?"":`<button type="button" class="${S.armed===e.id?"danger":"ghost"}" data-xdel="${esc(e.id)}">${S.armed===e.id?"Conferma":"Elimina"}</button>`}</td></tr>`).join("")}<tr class="tot"><td colspan="3">${list.length} registrazioni</td><td class="n">${qn(list.filter(e=>e.unit==="ora").reduce((t,e)=>t+e.qty,0))} h</td><td colspan="4"></td><td class="n">${eur(tot)}</td><td></td></tr></tbody>`
     :'<tbody><tr><td class="empty">Nessuna registrazione.</td></tr></tbody>';
 }
 ["f-reg-who","f-reg-act","f-reg-sede"].forEach(id=>$(id).onchange=renderReg);$("f-reg-q").oninput=renderReg;
